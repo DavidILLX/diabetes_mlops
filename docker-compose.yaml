@@ -1,0 +1,136 @@
+services:
+  postgres:
+    image: postgres:15.5
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+
+  airflow-init:
+    image: apache/airflow:2.8.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__DATABASE__EXECUTEMANY_MODE: ""
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+      _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-cncf-kubernetes apache-airflow-providers-docker apache-airflow-providers-amazon apache-airflow-providers-google psycopg2-binary"
+    entrypoint: ["/bin/bash", "-c", "airflow db migrate && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"]
+    volumes:
+      - ./Model:/opt/airflow/dags
+      - ./Orchestration/plugins:/opt/airflow/plugins
+      - ./Orchestration/logs:/opt/airflow/logs
+
+  airflow-webserver:
+    image: apache/airflow:2.8.1
+    build: 
+      context: .
+      dockerfile: Orchestration/Dockerfile 
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__DATABASE__EXECUTEMANY_MODE: ""
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    command: webserver
+    volumes:
+      - ./Model:/opt/airflow/dags
+      - ./Orchestration/plugins:/opt/airflow/plugins
+      - ./Orchestration/logs:/opt/airflow/logs
+
+  airflow-scheduler:
+    image: apache/airflow:2.8.1 
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__DATABASE__EXECUTEMANY_MODE: ""
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    command: scheduler
+    volumes:
+      - ./Model:/opt/airflow/dags
+      - ./Orchestration/plugins:/opt/airflow/plugins
+      - ./Orchestration/logs:/opt/airflow/logs
+
+  airflow-worker:
+    image: apache/airflow:2.8.1  
+    restart: always
+    depends_on:
+      redis:
+        condition: service_started
+      airflow-scheduler:
+        condition: service_started
+    environment:
+      AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__DATABASE__EXECUTEMANY_MODE: ""
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
+      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    command: celery worker
+    volumes:
+      - ./Model:/opt/airflow/dags
+      - ./Orchestration/plugins:/opt/airflow/plugins
+      - ./Orchestration/logs:/opt/airflow/logs
+
+  mlflow:
+    build:
+      context: ./Tracking/mlflow
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - "${PWD}/Tracking/mlflow_data:/home/mlflow_data/"
+
+volumes:
+  pgadmin_data:

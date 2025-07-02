@@ -144,6 +144,14 @@ resource "aws_security_group" "diabetes_security_group" {
   }
 
   ingress {
+    description = "Airflow UI custom port"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  ingress {
     description = "Grafana UI custom port"
     from_port   = 3000
     to_port     = 3000
