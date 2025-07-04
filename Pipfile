@@ -12,6 +12,7 @@ evidently = "*"
 matplotlib = "*"
 kaggle = "*"
 imblearn = "*"
+imbalanced-learn = "*"
 
 [dev-packages]
 pytest = "*"

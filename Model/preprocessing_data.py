@@ -6,9 +6,8 @@ import argparse
 
 from pathlib import Path
 from kaggle.api.kaggle_api_extended import KaggleApi
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-from imblearn.over_sampling import SMOTE
+from imblearn.combine import SMOTETomek
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -30,7 +29,7 @@ def read_dataframe(force_download=False):
 
     # Forcing dowloand if the data is not in the directory
     if force_download or not os.path.exists(csv_file):
-        logging.info('Downloading data from Kaggle...')
+        logging.info(f'Downloading {dataset} from Kaggle...')
         for filename in os.listdir(data_dir):
             file_path = os.path.join(data_dir, filename)
             if os.path.isfile(file_path):
@@ -46,13 +45,21 @@ def read_dataframe(force_download=False):
         diabetes_df = pd.read_csv(csv_file)
         logging.info(f'File .csv loaded. Num of rows: {len(diabetes_df)}')
     except FileNotFoundError:
-        logging.info('Diabetes.csv not found.')
+        logging.error('Diabetes.csv not found.')
     except Exception as e:
-        logging.info(f'Error while loading Diabetes.csv: {e}')
+        logging.error(f'Error while loading Diabetes.csv: {e}')
 
-    diabetes_df = selecting_features(diabetes_df, data_dir)
+    diabetes_df = change_types(diabetes_df)
+    logging.info(f'Data Changed to Integer')
+
+    #diabetes_df = selecting_features(diabetes_df, data_dir)
     split_data(diabetes_df, data_dir)
 
+def change_types(diabetes_df):
+    for col in diabetes_df.columns:
+        diabetes_df[col] = diabetes_df[col].astype(int)
+
+    return diabetes_df
 
 def dump_pickle(obj, filename: str):
     with open(filename, 'wb') as f_out:
@@ -63,19 +70,15 @@ def selecting_features(diabetes_df, data_dir):
     # Top features for ML from Features.ipynb
     top_features = ['Diabetes_012', 'BMI', 'Age','Income','PhysHlth','Education','GenHlth','MentHlth','HighBP','Fruits']
     diabetes_df = diabetes_df[top_features].copy() 
-
-    # Scaling continous features
-    continuous = ['Age', 'BMI', 'Income', 'PhysHlth', 'MentHlth']
-    scaler = StandardScaler()
-    diabetes_df.loc[:, continuous] = scaler.fit_transform(diabetes_df[continuous])
-
-    dump_pickle(scaler, data_dir / 'scaler.pkl')
+    logging.info(f'Top features selected for dataset.')
 
     return diabetes_df
 
 def balancing_classes(X_train, y_train):
-    smote = SMOTE(random_state=42)
+    logging.info(f'Running class Re-balancing with SMOTETomek.....')
+    smote = SMOTETomek(random_state=42)
     X_resampled, y_resampled = smote.fit_resample(X_train, y_train)
+    logging.info(f'Data re-balanced with SMOTETomek')
 
     return X_resampled, y_resampled
 
@@ -86,6 +89,7 @@ def split_data(diabetes_df, data_dir):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     X_train, y_train = balancing_classes(X_train, y_train)
+    logging.info(f'Data succesfully splitted to test and train (8/2)')
 
     dump_pickle((X_train, y_train), data_dir / 'train.pkl')
     dump_pickle((X_test, y_test), data_dir / 'test.pkl')

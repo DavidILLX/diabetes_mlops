@@ -20,3 +20,4 @@ terraform.tfstate.backup
 __pycache__/
 *.pyc
 logs/
+catboost_info/
