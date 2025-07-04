@@ -11,3 +11,12 @@ terraform.tfvars
 .terraform
 terraform.tfstate
 terraform.tfstate.backup
+
+# Experiment tracking & Orchestration
+/data/*
+!/data/.gitkeep
+/Tracking/mlflow_data/*
+.env
+__pycache__/
+*.pyc
+logs/
