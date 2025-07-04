@@ -12,7 +12,6 @@ evidently = "*"
 matplotlib = "*"
 kaggle = "*"
 imblearn = "*"
-pathlib = "*"
 
 [dev-packages]
 pytest = "*"
