@@ -24,11 +24,14 @@ def read_dataframe(force_download=False):
     os.makedirs(data_dir, exist_ok=True)
 
     dataset = 'alexteboul/diabetes-health-indicators-dataset'
-    diabetes_path = 'diabetes_012_health_indicators_BRFSS2015.csv'
-    csv_file = os.path.join(data_dir, diabetes_path)
+    test_data = 'diabetes_012_health_indicators_BRFSS2015.csv'
+    train_data = 'diabetes_binary_5050split_health_indicators_BRFSS2015.csv'
+
+    test_csv_file = os.path.join(data_dir, test_data)
+    train_csv_file = os.path.join(data_dir, train_data)
 
     # Forcing dowloand if the data is not in the directory
-    if force_download or not os.path.exists(csv_file):
+    if force_download or not os.path.exists(train_csv_file):
         logging.info(f'Downloading {dataset} from Kaggle...')
         for filename in os.listdir(data_dir):
             file_path = os.path.join(data_dir, filename)
@@ -42,37 +45,52 @@ def read_dataframe(force_download=False):
         logging.info('Using existing dataset, skipping download.')
 
     try:
-        diabetes_df = pd.read_csv(csv_file)
-        logging.info(f'File .csv loaded. Num of rows: {len(diabetes_df)}')
+        train_df = pd.read_csv(train_csv_file)
+        logging.info(f'File .csv loaded for train data. Num of rows: {len(train_df)}')
+
+        test_df = pd.read_csv(test_csv_file)
+        logging.info(f'File .csv loaded for train data. Num of rows: {len(test_df)}')
     except FileNotFoundError:
         logging.error('Diabetes.csv not found.')
     except Exception as e:
         logging.error(f'Error while loading Diabetes.csv: {e}')
 
-    diabetes_df = change_types(diabetes_df)
+    test_df = change_types(test_df)
+    train_df = change_types(train_df)
     logging.info(f'Data Changed to Integer')
 
-    #diabetes_df = selecting_features(diabetes_df, data_dir)
-    split_data(diabetes_df, data_dir)
+    train_df = selecting_features(train_df)
+    test_df = selecting_features(test_df)
 
-def change_types(diabetes_df):
-    for col in diabetes_df.columns:
-        diabetes_df[col] = diabetes_df[col].astype(int)
+    # Changing clases from pre-diabetes to diabetes
+    test_df = change_classes(test_df)
 
-    return diabetes_df
+    split_data(train_df, data_dir)
+    split_data(test_df,data_dir)
+
+def change_types(df):
+    for col in df.columns:
+        df[col] = df[col].astype(int)
+
+    return df
 
 def dump_pickle(obj, filename: str):
     with open(filename, 'wb') as f_out:
         pickle.dump(obj, f_out)
     logging.info(f'File {filename} created successfully.')
 
-def selecting_features(diabetes_df, data_dir):
-    # Top features for ML from Features.ipynb
-    top_features = ['Diabetes_012', 'BMI', 'Age','Income','PhysHlth','Education','GenHlth','MentHlth','HighBP','Fruits']
-    diabetes_df = diabetes_df[top_features].copy() 
-    logging.info(f'Top features selected for dataset.')
+def selecting_features(df):
+    possible_targets = ['Diabetes_012', 'Diabetes_binary']
+    target_col = next((col for col in df.columns if col in possible_targets), None)
 
-    return diabetes_df
+    # Top features for ML from Features.ipynb
+    other_features = ['BMI', 'Age', 'Income', 'PhysHlth', 'Education', 'GenHlth', 'MentHlth', 'HighBP', 'Fruits']
+    selected_cols = [target_col] + other_features
+
+    df = df[selected_cols].copy()
+    logging.info(f"Top features selected for dataset. Target: {target_col}")
+
+    return df
 
 def balancing_classes(X_train, y_train):
     logging.info(f'Running class Re-balancing with SMOTETomek.....')
@@ -82,18 +100,28 @@ def balancing_classes(X_train, y_train):
 
     return X_resampled, y_resampled
 
+def split_data(df, data_dir):
+    if df.columns[0] == 'Diabetes_012':
+        X_test = df.drop('Diabetes_012', axis=1)
+        y_test = df['Diabetes_012']
+        dump_pickle((X_test, y_test), data_dir / 'test.pkl')
+        logging.info(f'Data succesfully splitted to test')
+    elif df.columns[0] == 'Diabetes_binary':
+        X_train = df.drop('Diabetes_binary', axis=1)
+        y_train = df['Diabetes_binary']
+        dump_pickle((X_train, y_train), data_dir / 'train.pkl')
+        logging.info(f'Data succesfully splitted to train')
+    else:
+        logging.error('Unknown target column -> data was not saved.')
 
-def split_data(diabetes_df, data_dir):
-    X = diabetes_df.drop('Diabetes_012', axis=1)
-    y = diabetes_df['Diabetes_012']
+    #X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    #X_train, y_train = balancing_classes(X_train, y_train)
+    #logging.info(f'Data succesfully splitted to test and train (8/2)')
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    X_train, y_train = balancing_classes(X_train, y_train)
-    logging.info(f'Data succesfully splitted to test and train (8/2)')
+def change_classes(test_df):
+    test_df = test_df.replace(2, 1)
 
-    dump_pickle((X_train, y_train), data_dir / 'train.pkl')
-    dump_pickle((X_test, y_test), data_dir / 'test.pkl')
-
+    return test_df
 
 if __name__ == '__main__':
     args = parse_args()

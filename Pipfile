@@ -13,6 +13,9 @@ matplotlib = "*"
 kaggle = "*"
 imblearn = "*"
 imbalanced-learn = "*"
+xgboost = "*"
+catboost = "*"
+hyperopt = "*"
 
 [dev-packages]
 pytest = "*"
