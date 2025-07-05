@@ -66,7 +66,7 @@ def read_dataframe(force_download=False):
     test_df = change_classes(test_df)
 
     split_data(train_df, data_dir)
-    split_data(test_df,data_dir)
+    split_data(test_df, data_dir)
 
 def change_types(df):
     for col in df.columns:
@@ -78,6 +78,7 @@ def dump_pickle(obj, filename: str):
     with open(filename, 'wb') as f_out:
         pickle.dump(obj, f_out)
     logging.info(f'File {filename} created successfully.')
+    logging.info(f'Data types:\n{obj[0].dtypes}')
 
 def selecting_features(df):
     possible_targets = ['Diabetes_012', 'Diabetes_binary']

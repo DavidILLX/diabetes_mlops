@@ -1,11 +1,10 @@
 
 import os
-import joblib
+import re
 import mlflow
-import numpy as np
 import pickle
 import logging
-import re
+import numpy as np
 import xgboost as xgb
 
 from catboost import CatBoostClassifier
@@ -20,7 +19,6 @@ from hyperopt.pyll import scope
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-client = mlflow.tracking.MlflowClient()
 mlflow.set_tracking_uri('http://127.0.0.1:5000')
 
 def load_data(filename):
@@ -33,6 +31,9 @@ def load_data(filename):
         logging.error(f'{filename} data is empty')
     else:
         logging.info('Data Loaded succesfully')
+    
+    print(X.dtypes)
+    print(X.head())
 
     return X, y
 
@@ -44,9 +45,15 @@ def data_selection():
     X_test, y_test = load_data(test)
     logging.info('Data test/train loaded succesfully.')
 
-    return X_train, X_test, y_train, y_test
+    print("\n--- X_train dtypes po načtení ---")
+    print(X_train.dtypes)
+    print("\n--- X_test dtypes po načtení ---")
+    print(X_test.dtypes)
+
+    return X_train, y_train, X_test, y_test
 
 def create_experiment():
+    client = mlflow.tracking.MlflowClient()
     experiments = client.search_experiments(view_type=mlflow.entities.ViewType.ALL)
     experiments_sorted = sorted(experiments, key=lambda x: x.creation_time, reverse=True)
     latest_experiment = experiments_sorted[0]
@@ -80,16 +87,16 @@ def set_new_experiment_name(base_name="classification_experiment"):
 
 def catboost_objective(params):
     logging.info('Running Catboost model.....')
-    X_train, X_test, y_train, y_test = data_selection()
+    X_train, y_train, X_test, y_test = data_selection()
 
     with mlflow.start_run():
         mlflow.set_tag('Model', 'Catboost')
         mlflow.log_params(params)
 
-        categorical_features_indices = [X_train.columns.get_loc(col) for col in ['Age', 'GenHlth', 'Education', 'Income']]
+        categorical_features = ['Age', 'GenHlth', 'Education', 'Income']
 
         model = CatBoostClassifier(**params,
-                                   cat_features=categorical_features_indices,
+                                   cat_features=categorical_features,
                                    early_stopping_rounds=50,
                                    eval_metric='TotalF1')
 
@@ -101,12 +108,6 @@ def catboost_objective(params):
         y_pred = model.predict(X_test)
 
         # Logging important metrics
-        cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='f1_macro')
-        cv_score = cv_scores.mean()
-        cv_std = cv_scores.std()
-        mlflow.log_metric("cv_f1_mean", cv_score)
-        mlflow.log_metric("cv_f1_std", cv_std)
-        
         score = f1_score(y_test, y_pred, average='macro')
         loss = 1 - score 
         mlflow.log_metric('f1_macro', score)
@@ -122,7 +123,7 @@ def catboost_objective(params):
 
 def xgboost_objective(params):
     logging.info('Running XGBoost model.....')
-    X_train, X_test, y_train, y_test = data_selection()
+    X_train, y_train, X_test, y_test = data_selection()
 
     train = xgb.DMatrix(X_train, label=y_train)
     valid = xgb.DMatrix(X_test, label=y_test)
@@ -165,7 +166,7 @@ def xgboost_objective(params):
 
 def rf_objective(params):
     logging.info('Running Random Forest model.....')
-    X_train, X_test, y_train, y_test = data_selection()
+    X_train, y_train, X_test, y_test = data_selection()
 
     with mlflow.start_run():
         mlflow.set_tag('Model', 'Random Forest')
@@ -216,7 +217,7 @@ def rf_objective(params):
     
 def logreg_objective(params):
     logging.info('Running LogReg model.....')
-    X_train, X_test, y_train, y_test = data_selection()
+    X_train, y_train, X_test, y_test = data_selection()
 
     with mlflow.start_run():
         mlflow.set_tag('Model', 'LogisticRegression')
@@ -309,7 +310,6 @@ def run_all_models():
             trials=Trials()
         )
         logging.info(f"Best result for {name}: {best_result}")
-
 
 if __name__ == '__main__':
     run_all_models()
