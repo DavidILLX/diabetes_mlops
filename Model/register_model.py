@@ -250,6 +250,5 @@ def logistic_regression_train(params):
 
         print(f"Logistic Regression model registered: {model_uri}")
 
-
 if __name__ == '__main__':
     register_best_model()
