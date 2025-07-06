@@ -27,7 +27,7 @@ def load_parquet(prefix: str):
     y = pd.read_parquet(input_dir / f"y_{prefix}.parquet").squeeze()
 
     logging.info(f"Loaded X from {input_dir / f'X_{prefix}.parquet'}")
-    logging.info(f"Loaded y from {input_dir / f'y_{prefix}_y.parquet'}")
+    logging.info(f"Loaded y from {input_dir / f'y_{prefix}.parquet'}")
 
     return X, y
 
@@ -64,6 +64,7 @@ def set_new_experiment_name():
     next_version = max(versions) + 1 if versions else 1
     new_experiment_name = f"{base_name}_v{next_version}"
 
+    logging.info(f'Set up experiment {new_experiment_name}')
     return new_experiment_name
 
 def catboost_objective(params, X_train, y_train, X_test, y_test):
