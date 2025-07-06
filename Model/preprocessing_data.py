@@ -74,11 +74,16 @@ def change_types(df):
 
     return df
 
-def dump_pickle(obj, filename: str):
-    with open(filename, 'wb') as f_out:
-        pickle.dump(obj, f_out)
-    logging.info(f'File {filename} created successfully.')
-    logging.info(f'Data types:\n{obj[0].dtypes}')
+def save_parquet(X, y, output_dir="../Data", prefix="train"):
+    output_dir = Path(output_dir)
+    X_path = output_dir / f"X_{prefix}.parquet"
+    y_path = output_dir / f"y_{prefix}.parquet"
+
+    X.to_parquet(X_path, index=False)
+    y.to_frame().to_parquet(y_path, index=False)
+
+    logging.info(f"Saved X to {X_path}")
+    logging.info(f"Saved y to {y_path}")
 
 def selecting_features(df):
     possible_targets = ['Diabetes_012', 'Diabetes_binary']
@@ -105,12 +110,14 @@ def split_data(df, data_dir):
     if df.columns[0] == 'Diabetes_012':
         X_test = df.drop('Diabetes_012', axis=1)
         y_test = df['Diabetes_012']
-        dump_pickle((X_test, y_test), data_dir / 'test.pkl')
+
+        save_parquet(X_test, y_test, output_dir=data_dir, prefix="test")
         logging.info(f'Data succesfully splitted to test')
     elif df.columns[0] == 'Diabetes_binary':
         X_train = df.drop('Diabetes_binary', axis=1)
         y_train = df['Diabetes_binary']
-        dump_pickle((X_train, y_train), data_dir / 'train.pkl')
+
+        save_parquet(X_train, y_train, output_dir=data_dir, prefix="train")
         logging.info(f'Data succesfully splitted to train')
     else:
         logging.error('Unknown target column -> data was not saved.')

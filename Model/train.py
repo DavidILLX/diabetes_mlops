@@ -1,12 +1,11 @@
-
-import os
 import re
 import mlflow
-import pickle
 import logging
 import numpy as np
+import pandas as pd
 import xgboost as xgb
-
+from pathlib import Path
+from mlflow.tracking import MlflowClient
 from catboost import CatBoostClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -21,38 +20,18 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 mlflow.set_tracking_uri('http://127.0.0.1:5000')
 
-def load_data(filename):
-    data_path = '../Data/'
-    path = os.path.join(data_path, filename)
-    with open(path, 'rb') as f_in:
-        X, y  = pickle.load(f_in)
+def load_parquet(prefix: str):
+    input_dir = Path(__file__).resolve().parent.parent / "Data"
 
-    if X.empty or y.empty:
-        logging.error(f'{filename} data is empty')
-    else:
-        logging.info('Data Loaded succesfully')
-    
-    print(X.dtypes)
-    print(X.head())
+    X = pd.read_parquet(input_dir / f"X_{prefix}.parquet")
+    y = pd.read_parquet(input_dir / f"y_{prefix}.parquet").squeeze()
+
+    logging.info(f"Loaded X from {input_dir / f'X_{prefix}.parquet'}")
+    logging.info(f"Loaded y from {input_dir / f'y_{prefix}_y.parquet'}")
 
     return X, y
 
-def data_selection():
-    train = 'train.pkl'
-    test = 'test.pkl'
-
-    X_train, y_train = load_data(train)
-    X_test, y_test = load_data(test)
-    logging.info('Data test/train loaded succesfully.')
-
-    print("\n--- X_train dtypes po načtení ---")
-    print(X_train.dtypes)
-    print("\n--- X_test dtypes po načtení ---")
-    print(X_test.dtypes)
-
-    return X_train, y_train, X_test, y_test
-
-def create_experiment():
+def create_new_experiment():
     client = mlflow.tracking.MlflowClient()
     experiments = client.search_experiments(view_type=mlflow.entities.ViewType.ALL)
     experiments_sorted = sorted(experiments, key=lambda x: x.creation_time, reverse=True)
@@ -69,9 +48,11 @@ def create_experiment():
     name = set_new_experiment_name()
     mlflow.set_experiment(name)
 
-def set_new_experiment_name(base_name="classification_experiment"):
-    experiments = client.search_experiments(view_type=mlflow.entities.ViewType.ALL)
+def set_new_experiment_name():
+    client = MlflowClient()
+    base_name="classification_experiment"
 
+    experiments = client.search_experiments(view_type=mlflow.entities.ViewType.ALL)
     matching = [e for e in experiments if e.name.startswith(base_name)]
 
     versions = []
@@ -85,18 +66,18 @@ def set_new_experiment_name(base_name="classification_experiment"):
 
     return new_experiment_name
 
-def catboost_objective(params):
+def catboost_objective(params, X_train, y_train, X_test, y_test):
     logging.info('Running Catboost model.....')
-    X_train, y_train, X_test, y_test = data_selection()
 
     with mlflow.start_run():
         mlflow.set_tag('Model', 'Catboost')
         mlflow.log_params(params)
 
-        categorical_features = ['Age', 'GenHlth', 'Education', 'Income']
+        categorical_features_indices = [X_train.columns.get_loc(col) for col in ['Age', 'GenHlth', 'Education', 'Income']]
+
 
         model = CatBoostClassifier(**params,
-                                   cat_features=categorical_features,
+                                   cat_features=categorical_features_indices,
                                    early_stopping_rounds=50,
                                    eval_metric='TotalF1')
 
@@ -121,9 +102,8 @@ def catboost_objective(params):
 
     return {'loss': loss, 'status': STATUS_OK}
 
-def xgboost_objective(params):
+def xgboost_objective(params, X_train, y_train, X_test, y_test):
     logging.info('Running XGBoost model.....')
-    X_train, y_train, X_test, y_test = data_selection()
 
     train = xgb.DMatrix(X_train, label=y_train)
     valid = xgb.DMatrix(X_test, label=y_test)
@@ -142,8 +122,8 @@ def xgboost_objective(params):
             verbose_eval=False
         )
 
-        y_pred_proba = booster.predict(valid) 
-        y_pred = np.argmax(y_pred_proba, axis=1)
+        y_pred_proba = booster.predict(valid)
+        y_pred = (y_pred_proba >= 0.5).astype(int)
         
         #Loggin important metrics
         cv_scores = cross_val_score(booster, X_train, y_train, cv=5, scoring='f1_macro')
@@ -164,9 +144,8 @@ def xgboost_objective(params):
 
     return {'loss': loss, 'status': STATUS_OK}
 
-def rf_objective(params):
+def rf_objective(params, X_train, y_train, X_test, y_test):
     logging.info('Running Random Forest model.....')
-    X_train, y_train, X_test, y_test = data_selection()
 
     with mlflow.start_run():
         mlflow.set_tag('Model', 'Random Forest')
@@ -215,9 +194,8 @@ def rf_objective(params):
 
         return {'loss': loss, 'status': STATUS_OK}
     
-def logreg_objective(params):
+def logreg_objective(params, X_train, y_train, X_test, y_test):
     logging.info('Running LogReg model.....')
-    X_train, y_train, X_test, y_test = data_selection()
 
     with mlflow.start_run():
         mlflow.set_tag('Model', 'LogisticRegression')
@@ -255,6 +233,9 @@ def logreg_objective(params):
     return {'loss': loss, 'status': STATUS_OK}
 
 def run_all_models():
+    X_train, y_train = load_parquet(prefix = 'train')
+    X_test, y_test = load_parquet(prefix = 'test')
+
     objectives = {
         'catboost': (catboost_objective, {
             'depth': scope.int(hp.quniform('depth', 4, 10, 1)),
@@ -303,7 +284,7 @@ def run_all_models():
     for name, (fn, space) in objectives.items():
         logging.info(f"Running optimization for {name}")
         best_result = fmin(
-            fn=fn,
+            fn=lambda params, fn=fn: fn(params, X_train, y_train, X_test, y_test),
             space=space,
             algo=tpe.suggest,
             max_evals=50,
@@ -312,4 +293,5 @@ def run_all_models():
         logging.info(f"Best result for {name}: {best_result}")
 
 if __name__ == '__main__':
+    create_new_experiment()
     run_all_models()
