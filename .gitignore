@@ -20,4 +20,6 @@ terraform.tfstate.backup
 __pycache__/
 *.pyc
 logs/
+/Orchestration/logs/dag_processor_manager
 catboost_info/
+/Orchestration/logs/dag_processor_managerdag_processor_manager.log

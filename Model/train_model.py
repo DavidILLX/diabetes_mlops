@@ -9,19 +9,18 @@ from mlflow.tracking import MlflowClient
 from catboost import CatBoostClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score, accuracy_score, recall_score, classification_report
+from sklearn.metrics import f1_score, accuracy_score, recall_score, classification_report, cross_val_score
 from sklearn.model_selection import cross_val_score
-
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
 from hyperopt.pyll import scope
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-mlflow.set_tracking_uri('http://127.0.0.1:5000')
+mlflow.set_tracking_uri('http://mlflow:5000')
 
 def load_parquet(prefix: str):
-    input_dir = Path(__file__).resolve().parent.parent / "Data"
+    input_dir = Path('/app/Data')
 
     X = pd.read_parquet(input_dir / f"X_{prefix}.parquet")
     y = pd.read_parquet(input_dir / f"y_{prefix}.parquet").squeeze()
@@ -109,7 +108,6 @@ def xgboost_objective(params, X_train, y_train, X_test, y_test):
     train = xgb.DMatrix(X_train, label=y_train)
     valid = xgb.DMatrix(X_test, label=y_test)
 
-
     with mlflow.start_run():
         mlflow.set_tag('Model', 'XGboost')
         mlflow.log_params(params)
@@ -127,12 +125,6 @@ def xgboost_objective(params, X_train, y_train, X_test, y_test):
         y_pred = (y_pred_proba >= 0.5).astype(int)
         
         #Loggin important metrics
-        cv_scores = cross_val_score(booster, X_train, y_train, cv=5, scoring='f1_macro')
-        cv_score = cv_scores.mean()
-        cv_std = cv_scores.std()
-        mlflow.log_metric("cv_f1_mean", cv_score)
-        mlflow.log_metric("cv_f1_std", cv_std)
-
         score = f1_score(y_test, y_pred, average='macro')
         loss = 1 - score
         mlflow.log_metric('f1_macro', score)
@@ -177,12 +169,6 @@ def rf_objective(params, X_train, y_train, X_test, y_test):
         y_pred = model.predict(X_test)
 
         #Logging important metrics
-        cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='f1_macro')
-        cv_score = cv_scores.mean()
-        cv_std = cv_scores.std()
-        mlflow.log_metric("cv_f1_mean", cv_score)
-        mlflow.log_metric("cv_f1_std", cv_std)
-        
         f1 = f1_score(y_test, y_pred, average='macro')
         loss = 1 - f1
         mlflow.log_metric('f1_macro', f1)
@@ -259,7 +245,6 @@ def run_all_models():
             'subsample': hp.uniform('subsample', 0.6, 1.0),
             'colsample_bytree': hp.uniform('colsample_bytree', 0.6, 1.0),
             'objective': 'binary:logistic',
-            'num_class': 2,
             'seed': 42
         }),
         'random_forest': (rf_objective, {

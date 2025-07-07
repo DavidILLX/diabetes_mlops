@@ -20,7 +20,7 @@ def parse_args():
     return parser.parse_args()
 
 def read_dataframe(force_download=False):
-    data_dir = Path(__file__).parent.parent / 'Data'
+    data_dir = Path('/app/Data')
     os.makedirs(data_dir, exist_ok=True)
 
     dataset = 'alexteboul/diabetes-health-indicators-dataset'

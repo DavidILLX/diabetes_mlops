@@ -14,7 +14,7 @@ from sklearn.metrics import f1_score, accuracy_score, recall_score, classificati
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 client = MlflowClient()
-mlflow.set_tracking_uri('http://127.0.0.1:5000')
+mlflow.set_tracking_uri('http://mlflow:5000')
 
 def load_parquet(prefix: str):
     input_dir = Path(__file__).resolve().parent.parent / "Data"

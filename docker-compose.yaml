@@ -53,6 +53,8 @@ x-airflow-common:
   build: 
     context: .
     dockerfile: Orchestration/Dockerfile
+  networks:
+    - project_network
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
@@ -78,6 +80,7 @@ x-airflow-common:
     - ./Orchestration/plugins:/opt/airflow/plugins
     - ./Model:/app/Model
     - ./Data:/app/Data
+    - ~/.kaggle/kaggle.json:/home/airflow/.config/kaggle/kaggle.json:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
@@ -93,6 +96,8 @@ services:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
       POSTGRES_DB: airflow
+    networks:
+      - project_network
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
@@ -106,6 +111,8 @@ services:
     image: redis:latest
     expose:
       - 6379
+    networks:
+      - project_network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -264,6 +271,12 @@ services:
       - "5000:5000"
     volumes:
       - "./Tracking/mlflow_data:/home/mlflow_data/"
+    networks:
+      - project_network
+
+networks:
+  project_network:
+    driver: bridge
 
 volumes:
   postgres-db-volume:
