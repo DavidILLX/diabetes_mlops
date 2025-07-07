@@ -12,15 +12,15 @@ with DAG(
 ) as dag:
     preprocess_task = BashOperator(
         task_id="preprocess_data",
-        bash_command="pipenv run python $AIRFLOW_HOME/Model/preprocess_data.py --force-download"
+        bash_command="pipenv run python /app/Model/preprocess_data.py --force-download"
         )
     train_task = BashOperator(
         task_id="train_models",
-        bash_command="pipenv run python $AIRFLOW_HOME/Model/train.py"
+        bash_command="pipenv run python /app/Model/train.py"
         )
     register_task = BashOperator(
         task_id="register_models",
-        bash_command="pipenv run python $AIRFLOW_HOME/Model/register_model.py"
+        bash_command="pipenv run python /app/Model/register_model.py"
         )
 
 preprocess_task >> train_task >>  register_task  

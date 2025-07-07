@@ -1,24 +1,29 @@
-[2025-07-03T19:25:19.073+0000] {manager.py:469} INFO - Processing files using up to 2 processes at a time 
-[2025-07-03T19:25:19.074+0000] {manager.py:470} INFO - Process each file at most once every 30 seconds
-[2025-07-03T19:25:19.074+0000] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
-[2025-07-03T19:25:19.075+0000] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
-[2025-07-03T19:25:19.112+0000] {manager.py:741} INFO - There are 0 files in /opt/airflow/dags
-[2025-07-03T19:26:34.381+0000] {manager.py:451} INFO - Exiting gracefully upon receiving signal 15
-[2025-07-03T19:31:52.439+0000] {manager.py:469} INFO - Processing files using up to 2 processes at a time 
-[2025-07-03T19:31:52.439+0000] {manager.py:470} INFO - Process each file at most once every 30 seconds
-[2025-07-03T19:31:52.440+0000] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
-[2025-07-03T19:31:52.440+0000] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
-[2025-07-03T19:31:52.443+0000] {manager.py:741} INFO - There are 0 files in /opt/airflow/dags
-[2025-07-03T19:34:03.332+0000] {manager.py:451} INFO - Exiting gracefully upon receiving signal 15
-[2025-07-04T14:23:04.277+0000] {manager.py:469} INFO - Processing files using up to 2 processes at a time 
-[2025-07-04T14:23:04.278+0000] {manager.py:470} INFO - Process each file at most once every 30 seconds
-[2025-07-04T14:23:04.278+0000] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
-[2025-07-04T14:23:04.279+0000] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
-[2025-07-04T14:23:04.281+0000] {manager.py:741} INFO - There are 0 files in /opt/airflow/dags
-[2025-07-04T14:23:09.886+0000] {manager.py:451} INFO - Exiting gracefully upon receiving signal 15
-[2025-07-04T14:24:15.894+0000] {manager.py:469} INFO - Processing files using up to 2 processes at a time 
-[2025-07-04T14:24:15.895+0000] {manager.py:470} INFO - Process each file at most once every 30 seconds
-[2025-07-04T14:24:15.895+0000] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
-[2025-07-04T14:24:15.895+0000] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
-[2025-07-04T14:24:15.898+0000] {manager.py:741} INFO - There are 0 files in /opt/airflow/dags
-[2025-07-04T14:24:53.431+0000] {manager.py:451} INFO - Exiting gracefully upon receiving signal 15
+[2025-07-07T11:46:19.876+0000] {manager.py:469} INFO - Processing files using up to 2 processes at a time 
+[2025-07-07T11:46:19.878+0000] {manager.py:470} INFO - Process each file at most once every 30 seconds
+[2025-07-07T11:46:19.878+0000] {manager.py:471} INFO - Checking for new files in /opt/airflow/dags every 300 seconds
+[2025-07-07T11:46:19.879+0000] {manager.py:738} INFO - Searching for files in /opt/airflow/dags
+[2025-07-07T11:46:19.912+0000] {manager.py:741} INFO - There are 1 files in /opt/airflow/dags
+[2025-07-07T11:46:19.979+0000] {manager.py:879} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                          PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run
+-------------------------------  -----  ---------  --------  ----------  --------------  ----------
+/opt/airflow/dags/model_dags.py     50  0.03s             0           0
+================================================================================
+[2025-07-07T11:46:50.092+0000] {manager.py:879} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                        PID    Runtime      # DAGs    # Errors  Last Runtime    Last Run
+-------------------------------  -----  ---------  --------  ----------  --------------  -------------------
+/opt/airflow/dags/model_dags.py                           1           0  0.36s           2025-07-07T11:46:20
+================================================================================
+[2025-07-07T11:47:20.570+0000] {manager.py:879} INFO - 
+================================================================================
+DAG File Processing Stats
+
+File Path                          PID  Runtime      # DAGs    # Errors  Last Runtime    Last Run
+-------------------------------  -----  ---------  --------  ----------  --------------  -------------------
+/opt/airflow/dags/model_dags.py     64  0.00s             1           0  0.11s           2025-07-07T11:46:50
+================================================================================

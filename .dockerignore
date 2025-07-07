@@ -1,1 +1,8 @@
 Tracking/logs/scheduler/latest
+Orchestration/logs
+**/__pycache__
+*.pyc
+*.pyo
+*.pyd
+__pycache__
+*.swp
