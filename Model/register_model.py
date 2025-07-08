@@ -91,6 +91,7 @@ def register_best_model():
         logistic_regression_train(params)
 
     logging.info(f'Best model {model} has been registered.')
+    add_tags()
 
 def catboost_train(params):
     X_train, y_train = load_parquet(prefix = 'train')
@@ -250,6 +251,31 @@ def logistic_regression_train(params):
         mlflow.set_tag('ModelURI', model_uri)
 
         print(f'Logistic Regression model registered: {model_uri}')
+
+def add_tags(model):
+    client = MlflowClient()
+    if model == 'Catboost':
+        model_name = 'final_catboost_model'
+    elif model == 'XGboost':
+        model_name = 'final_xgboost_model'
+    elif model == 'Random Forest':
+        model_name = 'final_randomforest_model'
+    else:
+        model_name = 'final-logreg-model'
+
+    versions = sorted(versions, key=lambda v: int(v.version), reverse=True)
+    version = versions[0].version
+
+    version_id = versions[0].run_id
+    version_id 
+
+    client.set_model_version_tag(model_name, version, "Validated_by", "QA")
+    client.set_model_version_tag(model_name, version, "Stage", "Production")
+    client.set_model_version_tag(model_name,version, "Created_by","David")
+
+    client.set_registered_model_alias(name=model_name,alias="Champion", version=version)   
+
+
 
 def set_experiment_by_name():
     client = MlflowClient()
