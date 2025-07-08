@@ -275,8 +275,6 @@ def add_tags(model):
 
     client.set_registered_model_alias(name=model_name,alias="Champion", version=version)   
 
-
-
 def set_experiment_by_name():
     client = MlflowClient()
     experiments = client.search_experiments()
