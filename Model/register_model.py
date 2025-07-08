@@ -13,17 +13,16 @@ from sklearn.metrics import f1_score, accuracy_score, recall_score, classificati
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-client = MlflowClient()
 mlflow.set_tracking_uri('http://mlflow:5000')
 
 def load_parquet(prefix: str):
-    input_dir = Path(__file__).resolve().parent.parent / "Data"
+    input_dir = Path(__file__).resolve().parent.parent / 'Data'
 
-    X = pd.read_parquet(input_dir / f"X_{prefix}.parquet")
-    y = pd.read_parquet(input_dir / f"y_{prefix}.parquet").squeeze()
+    X = pd.read_parquet(input_dir / f'X_{prefix}.parquet')
+    y = pd.read_parquet(input_dir / f'y_{prefix}.parquet').squeeze()
 
-    logging.info(f"Loaded X from {input_dir / f'X_{prefix}.parquet'}")
-    logging.info(f"Loaded y from {input_dir / f'y_{prefix}.parquet'}")
+    logging.info(f'Loaded X from {input_dir / f'X_{prefix}.parquet'}')
+    logging.info(f'Loaded y from {input_dir / f'y_{prefix}.parquet'}')
 
     return X, y
 
@@ -41,6 +40,7 @@ def dict_change_dtypes(params):
     return parsed_params
 
 def select_best_n_models():
+    client = MlflowClient()
     experiments = client.search_experiments(view_type=mlflow.entities.ViewType.ALL)
     experiments_sorted = sorted(experiments, key=lambda x: x.creation_time, reverse=False)
     latest_experiment = experiments_sorted
@@ -78,6 +78,7 @@ def select_best_params():
     return best_params, best_model
 
 def register_best_model():
+    set_experiment_by_name()
     params, model = select_best_params()
 
     if model == 'Catboost':
@@ -100,7 +101,7 @@ def catboost_train(params):
     params = dict_change_dtypes(params)
     with mlflow.start_run() as run:
         mlflow.set_tag('Model', 'Catboost')
-        mlflow.set_tag("Stage", "Final_model")
+        mlflow.set_tag('Stage', 'Final_model')
         mlflow.log_params(params)
 
         model = CatBoostClassifier(
@@ -125,11 +126,11 @@ def catboost_train(params):
         recall = recall_score(y_test, y_pred, average='macro')
         mlflow.log_metric('recall', recall)
 
-        mlflow.catboost.log_model(model, artifact_path="model")
+        mlflow.catboost.log_model(model, artifact_path='model')
 
         run_id = run.info.run_id
-        model_uri = f"runs:/{run_id}/model"
-        mlflow.register_model(model_uri, name="final-catboost-model")
+        model_uri = f'runs:/{run_id}/model'
+        mlflow.register_model(model_uri, name='final-catboost-model')
         logging.info(f'Catboost model registered: {model_uri}')
 
 def xgboost_train(params):
@@ -139,7 +140,7 @@ def xgboost_train(params):
     params = dict_change_dtypes(params)
     with mlflow.start_run() as run:
         mlflow.set_tag('Model', 'XGBoost')
-        mlflow.set_tag("Stage", "Final_model")
+        mlflow.set_tag('Stage', 'Final_model')
         mlflow.log_params(params)
 
         dtrain = xgb.DMatrix(X_train, label=y_train)
@@ -167,14 +168,14 @@ def xgboost_train(params):
         recall = recall_score(y_test, y_pred, average='macro')
         mlflow.log_metric('recall', recall)
 
-        mlflow.sklearn.log_model(booster, artifact_path="model")
+        mlflow.xgboost.log_model(booster, artifact_path='model')
 
         run_id = run.info.run_id
-        model_uri = f"runs:/{run_id}/model"
-        mlflow.register_model(model_uri, name="final-xgboost-model")
-        mlflow.set_tag("ModelURI", model_uri)
+        model_uri = f'runs:/{run_id}/model'
+        mlflow.register_model(model_uri, name='final-xgboost-model')
+        mlflow.set_tag('ModelURI', model_uri)
 
-        print(f"XGBoost model registered: {model_uri}")
+        print(f'XGBoost model registered: {model_uri}')
 
 def random_forest_train(params):
     X_train, y_train = load_parquet(prefix='train')
@@ -183,7 +184,7 @@ def random_forest_train(params):
     params = dict_change_dtypes(params)
     with mlflow.start_run() as run:
         mlflow.set_tag('Model', 'RandomForest')
-        mlflow.set_tag("Stage", "Final_model")
+        mlflow.set_tag('Stage', 'Final_model')
         mlflow.log_params(params)
 
         model = RandomForestClassifier(
@@ -204,14 +205,14 @@ def random_forest_train(params):
         recall = recall_score(y_test, y_pred, average='macro')
         mlflow.log_metric('recall', recall)
 
-        mlflow.sklearn.log_model(model, artifact_path="model")
+        mlflow.sklearn.log_model(model, artifact_path='model')
 
         run_id = run.info.run_id
-        model_uri = f"runs:/{run_id}/model"
-        mlflow.register_model(model_uri, name="final-randomforest-model")
-        mlflow.set_tag("ModelURI", model_uri)
+        model_uri = f'runs:/{run_id}/model'
+        mlflow.register_model(model_uri, name='final-randomforest-model')
+        mlflow.set_tag('ModelURI', model_uri)
 
-        logging.info(f"Random Forest model registered: {model_uri}")
+        logging.info(f'Random Forest model registered: {model_uri}')
 
 def logistic_regression_train(params):
     X_train, y_train = load_parquet(prefix='train')
@@ -220,7 +221,7 @@ def logistic_regression_train(params):
     params = dict_change_dtypes(params)
     with mlflow.start_run() as run:
         mlflow.set_tag('Model', 'LogisticRegression')
-        mlflow.set_tag("Stage", "Final_model")
+        mlflow.set_tag('Stage', 'Final_model')
         mlflow.log_params(params)
 
         model = LogisticRegression(
@@ -241,14 +242,31 @@ def logistic_regression_train(params):
         recall = recall_score(y_test, y_pred, average='macro')
         mlflow.log_metric('recall', recall)
 
-        mlflow.sklearn.log_model(model, artifact_path="model")
+        mlflow.sklearn.log_model(model, artifact_path='model')
 
         run_id = run.info.run_id
-        model_uri = f"runs:/{run_id}/model"
-        mlflow.register_model(model_uri, name="final-logreg-model")
-        mlflow.set_tag("ModelURI", model_uri)
+        model_uri = f'runs:/{run_id}/model'
+        mlflow.register_model(model_uri, name='final-logreg-model')
+        mlflow.set_tag('ModelURI', model_uri)
 
-        print(f"Logistic Regression model registered: {model_uri}")
+        print(f'Logistic Regression model registered: {model_uri}')
+
+def set_experiment_by_name():
+    client = MlflowClient()
+    experiments = client.search_experiments()
+    partial_name = 'classification_experiment'
+
+    matching_experiments = sorted(
+        [exp for exp in experiments if partial_name.lower() in exp.name.lower()],
+        key=lambda x: x.creation_time,
+        reverse=True
+    )
+
+    if matching_experiments:
+        mlflow.set_experiment(matching_experiments[0].name)
+        logging.info(f'Experiment "{matching_experiments[0].name}" selected by partial match.')
+    else:
+        logging.warning(f'No experiment matched partial name "{partial_name}".')
 
 if __name__ == '__main__':
     register_best_model()

@@ -9,7 +9,7 @@ from mlflow.tracking import MlflowClient
 from catboost import CatBoostClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import f1_score, accuracy_score, recall_score, classification_report, cross_val_score
+from sklearn.metrics import f1_score, accuracy_score, recall_score, classification_report
 from sklearn.model_selection import cross_val_score
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
 from hyperopt.pyll import scope
