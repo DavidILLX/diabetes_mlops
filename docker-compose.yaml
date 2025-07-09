@@ -286,7 +286,8 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - "./Tracking/mlflow_data:/home/mlflow_data/"
+      - ./Tracking/mlflow_data:/home/mlflow_data/
+      - ./Tracking/mlfruns:/home/mlruns/
     networks:
       - project_network
 

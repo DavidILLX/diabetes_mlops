@@ -21,8 +21,8 @@ def load_parquet(prefix: str):
     X = pd.read_parquet(input_dir / f'X_{prefix}.parquet')
     y = pd.read_parquet(input_dir / f'y_{prefix}.parquet').squeeze()
 
-    logging.info(f'Loaded X from {input_dir / f'X_{prefix}.parquet'}')
-    logging.info(f'Loaded y from {input_dir / f'y_{prefix}.parquet'}')
+    logging.info(f"Loaded X from {input_dir / f'X_{prefix}.parquet'}")
+    logging.info(f"Loaded y from {input_dir / f'y_{prefix}.parquet'}")
 
     return X, y
 
@@ -83,15 +83,15 @@ def register_best_model():
 
     if model == 'Catboost':
         catboost_train(params)
-    elif model == 'XGboost':
+    if model == 'XGBoost':
         xgboost_train(params)
-    elif model == 'Random Forest':
+    if model == 'Random Forest':
         random_forest_train(params)
-    else:
+    if model == 'Logistic Regression':
         logistic_regression_train(params)
 
     logging.info(f'Best model {model} has been registered.')
-    add_tags()
+    add_tags(model)
 
 def catboost_train(params):
     X_train, y_train = load_parquet(prefix = 'train')
@@ -255,26 +255,47 @@ def logistic_regression_train(params):
 def add_tags(model):
     client = MlflowClient()
     if model == 'Catboost':
-        model_name = 'final_catboost_model'
-    elif model == 'XGboost':
-        model_name = 'final_xgboost_model'
-    elif model == 'Random Forest':
-        model_name = 'final_randomforest_model'
-    else:
+        model_name = 'final-catboost-model'
+    if model == 'XGBoost':
+        model_name = 'final-xgboost-model'
+    if model == 'Random Forest':
+        model_name = 'final-randomforest-model'
+    if model == 'Logistic Regressiob':
         model_name = 'final-logreg-model'
-
-    versions = sorted(versions, key=lambda v: int(v.version), reverse=True)
+        
+    versions = client.get_latest_versions(name = model_name)
     version = versions[0].version
-
-    version_id = versions[0].run_id
-    version_id 
 
     client.set_model_version_tag(model_name, version, "Validated_by", "QA")
     client.set_model_version_tag(model_name, version, "Stage", "Production")
     client.set_model_version_tag(model_name,version, "Created_by","David")
 
-    client.set_registered_model_alias(name=model_name,alias="Champion", version=version)   
+    client.set_registered_model_alias(name=model_name,alias="Champion", version=version)
 
+    champion_version = versions[0]  # Latest version
+
+    old_champion = None
+    for v in versions[1:]:
+        if any(alias.name == 'Champion' for alias in v.aliases):
+            old_champion = v
+            break
+
+    client.set_registered_model_alias(model_name, alias="Champion", version=champion_version.version)
+    logging.info(f"Alias 'Champion' set to version {champion_version.version}")
+
+    if old_champion:
+        client.delete_registered_model_alias(model_name, alias="Champion")
+        logging.info(f"Alias 'Champion' removed from version {old_champion.version}")
+
+        client.set_registered_model_alias(model_name, alias="Archived", version=old_champion.version)
+        logging.info(f"Alias 'Archived' set to version {old_champion.version}")
+
+    for v in versions[1:]:
+        if old_champion and v.version == old_champion.version:
+            continue
+        client.delete_model_version(model_name, v.version)
+        logging.info(f"Deleted version {v.version}")
+    
 def set_experiment_by_name():
     client = MlflowClient()
     experiments = client.search_experiments()
