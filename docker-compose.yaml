@@ -100,6 +100,7 @@ services:
       - project_network
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
+      - ./Monitoring/init/grafana_db.sql:/docker-entrypoint-initdb.d/grafana_db.sql:ro
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 10s
@@ -263,6 +264,21 @@ services:
       - -c
       - airflow
 
+  grafana:
+    image: grafana/grafana-enterprise
+    user: "472"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./Monitoring/config/grafana_datasources.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
+      - ./Monitoring/config/grafana_dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
+      - ./Monitoring//dashboards:/opt/grafana/dashboards
+    networks:
+      - project_network
+    restart: always
+    depends_on:
+      - postgres
+
   mlflow:
     build:
       context: .
@@ -274,9 +290,18 @@ services:
     networks:
       - project_network
 
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    networks:
+      - project_network
+
 networks:
   project_network:
     driver: bridge
 
 volumes:
   postgres-db-volume:
+  grafana_data: {}
