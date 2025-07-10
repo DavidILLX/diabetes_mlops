@@ -26,9 +26,11 @@ def read_dataframe(force_download=False):
     dataset = 'alexteboul/diabetes-health-indicators-dataset'
     test_data = 'diabetes_012_health_indicators_BRFSS2015.csv'
     train_data = 'diabetes_binary_5050split_health_indicators_BRFSS2015.csv'
+    ref_data = 'diabetes_binary_health_indicators_BRFSS2015.csv'
 
     test_csv_file = os.path.join(data_dir, test_data)
     train_csv_file = os.path.join(data_dir, train_data)
+    ref_csv_file = os.path.join(data_dir, ref_data)
 
     # Forcing dowloand if the data is not in the directory
     if force_download or not os.path.exists(train_csv_file):
@@ -50,6 +52,9 @@ def read_dataframe(force_download=False):
 
         test_df = pd.read_csv(test_csv_file)
         logging.info(f'File .csv loaded for train data. Num of rows: {len(test_df)}')
+
+        ref_df = pd.read_csv(ref_csv_file)
+        logging.info(f'File .csv loaded for train data. Num of rows: {len(ref_df)}')
     except FileNotFoundError:
         logging.error('Diabetes.csv not found.')
     except Exception as e:
@@ -57,16 +62,19 @@ def read_dataframe(force_download=False):
 
     test_df = change_types(test_df)
     train_df = change_types(train_df)
+    ref_df = change_types(ref_df)
     logging.info(f'Data Changed to Integer')
 
     train_df = selecting_features(train_df)
     test_df = selecting_features(test_df)
+    ref_df = selecting_features(ref_df)
 
     # Changing clases from pre-diabetes to diabetes
     test_df = change_classes(test_df)
 
     split_data(train_df, data_dir)
     split_data(test_df, data_dir)
+    split_data(ref_df, data_dir)
 
 def change_types(df):
     for col in df.columns:
