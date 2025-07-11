@@ -20,7 +20,7 @@ def parse_args():
     return parser.parse_args()
 
 def read_dataframe(force_download=False):
-    data_dir = Path('/app/Data')
+    data_dir = Path(__file__).resolve().parent.parent / "Data"
     os.makedirs(data_dir, exist_ok=True)
 
     dataset = 'alexteboul/diabetes-health-indicators-dataset'
@@ -54,11 +54,11 @@ def read_dataframe(force_download=False):
         logging.info(f'File .csv loaded for train data. Num of rows: {len(test_df)}')
 
         ref_df = pd.read_csv(ref_csv_file)
-        logging.info(f'File .csv loaded for train data. Num of rows: {len(ref_df)}')
+        logging.info(f'File .csv loaded for ref data. Num of rows: {len(ref_df)}')
     except FileNotFoundError:
-        logging.error('Diabetes.csv not found.')
+        logging.error('Diabetes files not found.')
     except Exception as e:
-        logging.error(f'Error while loading Diabetes.csv: {e}')
+        logging.error(f'Error while loading Diabetes files: {e}')
 
     test_df = change_types(test_df)
     train_df = change_types(train_df)
@@ -72,9 +72,9 @@ def read_dataframe(force_download=False):
     # Changing clases from pre-diabetes to diabetes
     test_df = change_classes(test_df)
 
-    split_data(train_df, data_dir)
-    split_data(test_df, data_dir)
-    split_data(ref_df, data_dir)
+    split_data(train_df, data_dir, prefix='train')
+    split_data(test_df, data_dir, prefix='test')
+    split_data(ref_df, data_dir, prefix='ref')
 
 def change_types(df):
     for col in df.columns:
@@ -82,7 +82,7 @@ def change_types(df):
 
     return df
 
-def save_parquet(X, y, output_dir="../Data", prefix="train"):
+def save_parquet(X, y, prefix, output_dir):
     output_dir = Path(output_dir)
     X_path = output_dir / f"X_{prefix}.parquet"
     y_path = output_dir / f"y_{prefix}.parquet"
@@ -114,19 +114,25 @@ def balancing_classes(X_train, y_train):
 
     return X_resampled, y_resampled
 
-def split_data(df, data_dir):
-    if df.columns[0] == 'Diabetes_012':
+def split_data(df, data_dir, prefix):
+    if prefix == 'test':
         X_test = df.drop('Diabetes_012', axis=1)
         y_test = df['Diabetes_012']
 
-        save_parquet(X_test, y_test, output_dir=data_dir, prefix="test")
-        logging.info(f'Data succesfully splitted to test')
-    elif df.columns[0] == 'Diabetes_binary':
+        save_parquet(X_test, y_test, prefix="test", output_dir=data_dir)
+        logging.info(f'Data succesfully splitted to test X,y')
+    elif prefix == 'train':
         X_train = df.drop('Diabetes_binary', axis=1)
         y_train = df['Diabetes_binary']
 
-        save_parquet(X_train, y_train, output_dir=data_dir, prefix="train")
-        logging.info(f'Data succesfully splitted to train')
+        save_parquet(X_train, y_train,  prefix="train", output_dir=data_dir)
+        logging.info(f'Data succesfully splitted to train X,y')
+    elif prefix == 'ref':
+        X_ref = df.drop('Diabetes_binary', axis=1)
+        y_ref = df['Diabetes_binary']
+
+        save_parquet(X_ref, y_ref, prefix="ref", output_dir=data_dir)
+        logging.info(f'Data succesfully splitted to ref X,y')
     else:
         logging.error('Unknown target column -> data was not saved.')
 

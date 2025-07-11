@@ -83,7 +83,7 @@ def register_best_model():
 
     if model == 'Catboost':
         catboost_train(params)
-    if model == 'XGBoost':
+    if model == 'XGboost':
         xgboost_train(params)
     if model == 'Random Forest':
         random_forest_train(params)
@@ -256,7 +256,7 @@ def add_tags(model):
     client = MlflowClient()
     if model == 'Catboost':
         model_name = 'final-catboost-model'
-    if model == 'XGBoost':
+    if model == 'XGboost':
         model_name = 'final-xgboost-model'
     if model == 'Random Forest':
         model_name = 'final-randomforest-model'

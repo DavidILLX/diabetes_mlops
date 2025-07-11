@@ -80,6 +80,8 @@ x-airflow-common:
     - ./Orchestration/plugins:/opt/airflow/plugins
     - ./Model:/app/Model
     - ./Data:/app/Data
+    - ./Monitoring:/app/Monitoring
+    - ./artifacts:/app/artifacts
     - ~/.kaggle/kaggle.json:/home/airflow/.config/kaggle/kaggle.json:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
@@ -92,6 +94,8 @@ x-airflow-common:
 services:
   postgres:
     image: postgres:13
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: airflow
       POSTGRES_PASSWORD: airflow
