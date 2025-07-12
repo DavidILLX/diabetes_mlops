@@ -189,6 +189,7 @@ resource "aws_db_instance" "db_instance_mlflow" {
 
   username = var.postgres_username
   password = var.postgres_password
+  db_name = var.postgres_name
 
   db_subnet_group_name   = aws_db_subnet_group.postgres_subnet.name
   vpc_security_group_ids = [aws_security_group.diabetes_security_group.id]

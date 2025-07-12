@@ -6,7 +6,7 @@ from mlflow.tracking import MlflowClient
 import pandas as pd
 from pathlib import Path
 import psycopg2
-
+import os
 from evidently import Report, Dataset, DataDefinition, BinaryClassification
 from evidently.ui.workspace import RemoteWorkspace
 from evidently.sdk.panels import *
@@ -18,10 +18,10 @@ from evidently.tests import *
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]: %(message)s")
 
-CONNECTION_STRING = "host=localhost port=5432 user=grafana password=grafana"
-CONNECTION_STRING_DB = CONNECTION_STRING + "dbname=grafana"
+CONNECTION_STRING = "host=postgres port=5432 user=grafana password=grafana"
+CONNECTION_STRING_DB = CONNECTION_STRING + " dbname=grafana"
 
-mlflow.set_tracking_uri('http://localhost:5000')
+mlflow.set_tracking_uri('http://mlflow:5000')
 client = MlflowClient()
 
 def get_final_model():
@@ -39,11 +39,13 @@ def get_final_model():
     run_artifacts_id = runs[0].info.artifact_uri
     model_uri =runs[0].data.tags['ModelURI']
 
+    dst_path = '/app/Monitoring'
+    os.makedirs(dst_path, exist_ok=True)
+
     logging.info(f'Final experiment found at: {model_uri} as {run_name} with ID: {run_artifacts_id}')
 
-    local_path = client.download_artifacts(run_id, "model", dst_path='../artifacts/')
+    local_path = client.download_artifacts(run_id, 'model', dst_path=dst_path)
 
-    local_path = "../artifacts/model/"
     try:
         model = mlflow.xgboost.load_model(local_path)
         logging.info('Model artifact found and loaded')
@@ -94,7 +96,7 @@ def data_definition():
 
     num_cols = ['BMI', 'prediction_proba']
     cat_cols = ['Age', 'Income', 'PhysHlth', 'Education', 'GenHlth', 'MentHlth', 'HighBP']
-    features = num_cols + cat_cols + ['target', 'prediction']
+    features = num_cols + cat_cols + ['target']
 
     data_definiton = DataDefinition(numerical_columns=num_cols,
                                     categorical_columns=cat_cols,                                
@@ -116,8 +118,9 @@ def data_definition():
     return ref_dataset, curr_dataset
 
 def create_workspace(name):
-    workspace = RemoteWorkspace(base_url='http://localhost:8000')
-    workspace = create_workspace()
+    evidently_url = 'http://host.docker.internal:8000'
+
+    workspace = RemoteWorkspace(base_url=evidently_url)
 
     description = 'Monitoring for Diabetes project'
     project = workspace.create_project(name, description)
@@ -270,13 +273,17 @@ def prep_db():
     """
 
     with psycopg2.connect(CONNECTION_STRING) as conn:
-        conn.autocommit=True
-        res = conn.execute("SELECT 1 FROM pg_database WHERE datname='grafana'")
-        if len(res.fetchall()) == 0:
-                conn.execute("CREATE DATABASE grafana;")
-        with psycopg2.connect(CONNECTION_STRING_DB) as conn:
-            conn.execute(create_table_statement)
-        
+        conn.autocommit = True
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM pg_database WHERE datname='grafana'")
+            exists = cur.fetchone()
+            if not exists:
+                cur.execute("CREATE DATABASE grafana;")
+
+    with psycopg2.connect(CONNECTION_STRING_DB) as conn:
+        with conn.cursor() as cur:
+            cur.execute(create_table_statement)
+
     conn.close()
 
 def insert_metrics_into_db(snapshot, snapshot_predictions):

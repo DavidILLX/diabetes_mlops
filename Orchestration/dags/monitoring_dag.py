@@ -21,7 +21,7 @@ with DAG(
 
     run_monitoring = BashOperator(
         task_id='run_evidently_monitoring',
-        bash_command='python /app/Monitoring/monitoring_pipeline.py'
+        bash_command='python /app/Monitoring/evidently_metrics.py'
     )
 
     run_monitoring

@@ -27,3 +27,7 @@ output "db_username" {
     description = "User name for database user"
     value = aws_db_instance.db_instance_mlflow.username
 }
+
+output "db_endpoint" {
+  value = aws_db_instance.db_instance_mlflow.endpoint
+}

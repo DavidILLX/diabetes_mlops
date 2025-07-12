@@ -71,7 +71,7 @@ variable "engine" {
 
 variable "engine_version" {
   description = "Engine version for db"
-  default     = "15.10"
+  default     = "13.15"
 }
 
 variable "db_id" {
@@ -86,13 +86,18 @@ variable "db_instance" {
 
 variable "postgres_username" {
   description = "Username for postgres db"
-  default     = "mlops"
+  default     = "airflow"
 }
 
 variable "postgres_password" {
   description = "password for postgres db"
-  default     = "postgresroot"
+  default     = "airflowairflow"
   sensitive   = true
+}
+
+variable "postgres_name" {
+  description = "Name of the postgres db"
+  default = "airflow"
 }
 
 variable "ami" {
