@@ -1,15 +1,31 @@
 import os
-import pickle
 import pandas as pd
 import logging
 import argparse
+import boto3
+from io import BytesIO
+import pyarrow.parquet as pq
+import pyarrow as pa
 
+from dotenv import load_dotenv
 from pathlib import Path
 from kaggle.api.kaggle_api_extended import KaggleApi
 from sklearn.model_selection import train_test_split
 from imblearn.combine import SMOTETomek
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+load_dotenv()
+
+aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+aws_region = os.getenv('AWS_REGION')
+
+s3 = boto3.client(
+    service_name='s3',
+    aws_access_key_id=aws_access_key_id,
+    aws_secret_access_key=aws_secret_access_key,
+    region_name=aws_region
+)
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Preprocessing diabetes dataset')
@@ -46,6 +62,10 @@ def read_dataframe(force_download=False):
     else:
         logging.info('Using existing dataset, skipping download.')
 
+    upload_to_s3(test_csv_file, 'test_data')
+    upload_to_s3(train_csv_file, 'train_data')
+    upload_to_s3(ref_csv_file, 'ref_data')
+
     try:
         train_df = pd.read_csv(train_csv_file)
         logging.info(f'File .csv loaded for train data. Num of rows: {len(train_df)}')
@@ -72,9 +92,50 @@ def read_dataframe(force_download=False):
     # Changing clases from pre-diabetes to diabetes
     test_df = change_classes(test_df)
 
-    split_data(train_df, data_dir, prefix='train')
-    split_data(test_df, data_dir, prefix='test')
-    split_data(ref_df, data_dir, prefix='ref')
+    split_data(train_df, prefix='train')
+    split_data(test_df, prefix='test')
+    split_data(ref_df, prefix='ref')
+
+def upload_to_s3(input, name):
+    aws_bucket = 'diabetes-data-bucket'
+    buffer = BytesIO()
+
+    try:
+        if isinstance(input, (pd.DataFrame, pd.Series)):
+            df = input
+
+            if isinstance(df, pd.Series):
+                df = df.to_frame()
+
+            df.to_parquet(buffer, engine='pyarrow', index=False)
+            processed_folder = f'processed_data/{name}.parquet'
+
+            try:
+                buffer.seek(0)
+                s3.upload_fileobj(Fileobj=buffer, Bucket=aws_bucket, Key=processed_folder)
+                logging.info('Processed files uploaded to S3 successfully.')
+            except Exception as e:
+                logging.error(f'Failed to upload preprocessed files to S3 details - {e}')
+
+        elif isinstance(input, str) and input.endswith('.csv'):
+            if not os.path.exists(input):
+                raise FileNotFoundError(f'CSV file not found: {input}')
+            df = pd.read_csv(input)
+            df.to_parquet(buffer, engine='pyarrow', index=False)
+            raw_folder = F'raw_data/{name}.parquet'
+
+            try:
+                buffer.seek(0)
+                s3.upload_fileobj(Fileobj=buffer, Bucket=aws_bucket, Key=raw_folder)
+                logging.info('Files uploaded to S3 successfully.')
+            except Exception as e:
+                logging.error(f'Failed to upload files to S3 details - {e}')
+
+        else:
+            raise ValueError('Input must be a pandas DataFrame or a path to a CSV file')
+    except Exception as e:
+        logging.error(f"Failed to save Parquet to S3: {str(e)}")
+        raise     
 
 def change_types(df):
     for col in df.columns:
@@ -91,7 +152,7 @@ def save_parquet(X, y, prefix, output_dir):
     y.to_frame().to_parquet(y_path, index=False)
 
     logging.info(f"Saved X to {X_path}")
-    logging.info(f"Saved y to {y_path}")
+    logging.info(f"Saved y to {y_path}") 
 
 def selecting_features(df):
     possible_targets = ['Diabetes_012', 'Diabetes_binary']
@@ -114,25 +175,32 @@ def balancing_classes(X_train, y_train):
 
     return X_resampled, y_resampled
 
-def split_data(df, data_dir, prefix):
+def split_data(df, prefix):
     if prefix == 'test':
         X_test = df.drop('Diabetes_012', axis=1)
         y_test = df['Diabetes_012']
 
-        save_parquet(X_test, y_test, prefix="test", output_dir=data_dir)
+        #save_parquet(X_test, y_test, prefix="test", output_dir=data_dir)
         logging.info(f'Data succesfully splitted to test X,y')
+        upload_to_s3(X_test, 'X_test')
+        upload_to_s3(y_test, 'y_test')
     elif prefix == 'train':
         X_train = df.drop('Diabetes_binary', axis=1)
         y_train = df['Diabetes_binary']
 
-        save_parquet(X_train, y_train,  prefix="train", output_dir=data_dir)
+        #save_parquet(X_train, y_train,  prefix="train", output_dir=data_dir)
         logging.info(f'Data succesfully splitted to train X,y')
+        upload_to_s3(X_train, 'X_train')
+        upload_to_s3(y_train, 'y_train')
+     
     elif prefix == 'ref':
         X_ref = df.drop('Diabetes_binary', axis=1)
         y_ref = df['Diabetes_binary']
 
-        save_parquet(X_ref, y_ref, prefix="ref", output_dir=data_dir)
+        #save_parquet(X_ref, y_ref, prefix="ref", output_dir=data_dir)
         logging.info(f'Data succesfully splitted to ref X,y')
+        upload_to_s3(X_ref, 'X_ref')
+        upload_to_s3(y_ref, 'y_ref') 
     else:
         logging.error('Unknown target column -> data was not saved.')
 

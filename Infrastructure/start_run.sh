@@ -12,11 +12,13 @@ sudo update-alternatives --remove-all python3 || true
 sudo update-alternatives --remove-all pip3 || true
 
 # Changing prefered poython to 3.11
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 100
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 50 
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 50
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 100
 
 # Chnaging so pip uses 3.11
 sudo update-alternatives --install /usr/bin/pip3 pip3 /usr/bin/pip3 100 
+
+
 
 
 

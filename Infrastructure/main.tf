@@ -160,6 +160,14 @@ resource "aws_security_group" "diabetes_security_group" {
   }
 
   ingress {
+    description = "Adminer custom port"
+    from_port   = 8081
+    to_port     = 8081
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  ingress {
     description = "PostgreSQL access"
     from_port   = 5432
     to_port     = 5432

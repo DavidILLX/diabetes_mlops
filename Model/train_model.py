@@ -1,9 +1,12 @@
 import re
 import mlflow
 import logging
-import numpy as np
+import boto3
 import pandas as pd
 import xgboost as xgb
+import os
+
+from io import BytesIO
 from pathlib import Path
 from mlflow.tracking import MlflowClient
 from catboost import CatBoostClassifier
@@ -14,10 +17,31 @@ from sklearn.model_selection import cross_val_score
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
 from hyperopt.pyll import scope
 
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 mlflow.set_tracking_uri('http://mlflow:5000')
+
+aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+aws_region = os.getenv('AWS_REGION')
+
+s3 = boto3.client(
+    service_name='s3',
+    aws_access_key_id=aws_access_key_id,
+    aws_secret_access_key=aws_secret_access_key,
+    region_name=aws_region
+)
+
+def load_parquet_from_s3(type):
+    buffer = BytesIO()
+    bucket = 'diabetes-data-bucket'
+    key = f'processed_data/{type}.parquet'
+    
+    s3.download_fileobj(Fileobj=buffer, Bucket=bucket, Key=key)
+    buffer.seek(0)
+    
+    df = pd.read_parquet(buffer)
+    return df
 
 def load_parquet(prefix: str):
     input_dir = Path('/app/Data')
@@ -220,8 +244,10 @@ def logreg_objective(params, X_train, y_train, X_test, y_test):
     return {'loss': loss, 'status': STATUS_OK}
 
 def run_all_models():
-    X_train, y_train = load_parquet(prefix = 'train')
-    X_test, y_test = load_parquet(prefix = 'test')
+    X_train = load_parquet_from_s3('X_train') 
+    y_train = load_parquet_from_s3('y_train') 
+    X_test = load_parquet_from_s3('X_test') 
+    y_test = load_parquet_from_s3('y_test') 
 
     objectives = {
         'catboost': (catboost_objective, {
