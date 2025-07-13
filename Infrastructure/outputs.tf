@@ -18,16 +18,22 @@ output "ec2_ssh_command" {
   value       = "ssh -i ~/.ssh/mlops-key ubuntu@${aws_instance.mlops_server.public_ip}"
 }
 
-output "db_output" {
+output "db_mlflow_output" {
   description = "IP of the db instance"
   value       = aws_db_instance.db_instance_mlflow.address
 }
 
-output "db_username" {
-    description = "User name for database user"
-    value = aws_db_instance.db_instance_mlflow.username
+output "db_mlflow_endpoint" {
+  description = "The endpoint of the db instance for mlflow"
+  value = aws_db_instance.db_instance_mlflow.endpoint
 }
 
-output "db_endpoint" {
-  value = aws_db_instance.db_instance_mlflow.endpoint
+output "db_airflow_endpoint" {
+  description = "The endpoint of the db instance for airflow"
+  value = aws_db_instance.db_instance_airflow.endpoint
+}
+
+output "db_grafana_endpoint" {
+  description = "The endpoint of the db instance for airflow"
+  value = aws_db_instance.db_instance_grafana.endpoint
 }

@@ -196,16 +196,16 @@ resource "aws_security_group" "diabetes_security_group" {
 }
 
 #Postgres instance
-resource "aws_db_instance" "db_instance_mlflow" {
-  identifier        = var.db_id
+resource "aws_db_instance" "db_instance_airflow" {
+  identifier        = var.db_id_airflow
   instance_class    = var.db_instance
   allocated_storage = 5
   engine            = var.engine
   engine_version    = var.engine_version
 
-  username = var.postgres_username
-  password = var.postgres_password
-  db_name = var.postgres_name
+  username = var.postgres_username_airflow
+  password = var.postgres_password_airflow
+  db_name = var.postgres_name_airflow
 
   db_subnet_group_name   = aws_db_subnet_group.postgres_subnet.name
   vpc_security_group_ids = [aws_security_group.diabetes_security_group.id]
@@ -214,19 +214,40 @@ resource "aws_db_instance" "db_instance_mlflow" {
   skip_final_snapshot = true
 }
 
-resource "postgresql_database" "mlflow_db" {
-  name = var.db_mlflow
-  depends_on = [aws_db_instance.db_instance_mlflow]
+resource "aws_db_instance" "db_instance_mlflow" {
+  identifier        = var.db_id_mlflow
+  instance_class    = var.db_instance
+  allocated_storage = 5
+  engine            = var.engine
+  engine_version    = var.engine_version
+
+  username = var.postgres_username_mlflow
+  password = var.postgres_password_mlflow
+  db_name = var.postgres_name_mlflow
+
+  db_subnet_group_name   = aws_db_subnet_group.postgres_subnet.name
+  vpc_security_group_ids = [aws_security_group.diabetes_security_group.id]
+
+  publicly_accessible = false
+  skip_final_snapshot = true
 }
 
-resource "postgresql_database" "airflow_db" {
-  name = var.db_airflow
-  depends_on = [aws_db_instance.db_instance_mlflow]
-}
+resource "aws_db_instance" "db_instance_grafana" {
+  identifier        = var.db_id_grafana
+  instance_class    = var.db_instance
+  allocated_storage = 5
+  engine            = var.engine
+  engine_version    = var.engine_version
 
-resource "postgresql_database" "grafana_db" {
-  name = var.db_grafana
-  depends_on = [aws_db_instance.db_instance_mlflow]
+  username = var.postgres_username_grafana
+  password = var.postgres_password_grafama
+  db_name = var.postgres_name_grafana
+
+  db_subnet_group_name   = aws_db_subnet_group.postgres_subnet.name
+  vpc_security_group_ids = [aws_security_group.diabetes_security_group.id]
+
+  publicly_accessible = false
+  skip_final_snapshot = true
 }
 
 # EC2 Instance
@@ -239,6 +260,12 @@ resource "aws_instance" "mlops_server" {
 
   vpc_security_group_ids      = [aws_security_group.diabetes_security_group.id]
   associate_public_ip_address = true
+
+  root_block_device {
+    volume_size           = 50     
+    volume_type           = "gp3"
+    delete_on_termination = true
+  }
 
   user_data = file("start_run.sh")
 

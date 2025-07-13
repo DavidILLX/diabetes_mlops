@@ -90,6 +90,8 @@ x-airflow-common:
       condition: service_healthy
     postgres:
       condition: service_healthy
+    env_file:
+      - .env
 
 services:
   postgres:
@@ -288,7 +290,7 @@ services:
       mlflow server 
       --host 0.0.0.0 
       --port 5000 
-      --backend-store-uri <DB_CONNECTION> 
+      --backend-store-uri postgresql://<DB_CONNECTION> 
       --default-artifact-root s3://mlflow-bucket-diabetes
     build:
       context: .

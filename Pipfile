@@ -19,6 +19,7 @@ pandas = "==2.2.1"
 numpy = "==1.26.4"
 psycopg2-binary = ">=2.9.9,<2.10"
 sqlalchemy = ">=1.4,<2.0"
+scipy = "*"
 
 [dev-packages]
 pytest = "*"

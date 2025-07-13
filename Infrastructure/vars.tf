@@ -75,30 +75,72 @@ variable "engine_version" {
   default     = "13.15"
 }
 
-variable "db_id" {
-  description = "ID for the created db for MLFLOW"
-  default     = "mlops-1"
-}
-
 variable "db_instance" {
   description = "Instance type to use for the db"
   default     = "db.t3.micro"
 }
 
-variable "postgres_username" {
-  description = "Username for postgres db"
+variable "db_id_airflow" {
+  description = "ID for the created db for airflow"
+  default     = "airflow-1"
+}
+
+variable "postgres_name_airflow" {
+  description = "Name of the postgres db for airflow"
+  default = "airflow"
+}
+
+variable "postgres_username_airflow" {
+  description = "Username for postgres db for airflow"
   default     = "airflow"
 }
 
-variable "postgres_password" {
-  description = "password for postgres db"
+variable "postgres_password_airflow" {
+  description = "password for postgres db for airflow"
   default     = "airflowairflow"
   sensitive   = true
 }
 
-variable "postgres_name" {
+variable "db_id_mlflow" {
+  description = "ID for the created db for MLFLOW"
+  default     = "mlflow-1"
+}
+
+variable "postgres_name_mlflow" {
   description = "Name of the postgres db"
-  default = "airflow"
+  default = "mlflow"
+}
+
+variable "postgres_username_mlflow" {
+  description = "Username for postgres db for MLflow"
+  default     = "mlflow"
+}
+
+variable "postgres_password_mlflow" {
+  description = "password for postgres db"
+  default     = "mlflowmlflow"
+  sensitive   = true
+}
+
+variable "db_id_grafana" {
+  description = "ID for the created db for MLFLOW"
+  default     = "grafana-1"
+}
+
+variable "postgres_name_grafana" {
+  description = "Name of the postgres db for Grafana"
+  default = "grafana"
+}
+
+variable "postgres_username_grafana" {
+  description = "Username for postgres db for Grafana"
+  default     = "grafana"
+}
+
+variable "postgres_password_grafama" {
+  description = "password for postgres db for Grafana"
+  default     = "grafanagrafana"
+  sensitive   = true
 }
 
 variable "ami" {
@@ -129,19 +171,4 @@ variable "mlops_key_name" {
 variable "mlops_key_path" {
   description = "Path to the key"
   default     = "~/.ssh/mlops.pub"
-}
-
-variable "db_airflow" {
-  description = "Name of the database for Airflow"
-  default = "airflow"
-}
-
-variable "db_mlflow" {
-  description = "Name of the database for MLflow"
-  default = "mlflow"
-}
-
-variable "db_mlflow" {
-  description = "Name of the database for Grafana"
-  default = "grafana"
 }
