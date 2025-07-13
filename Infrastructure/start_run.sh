@@ -21,21 +21,21 @@ sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 
 sudo update-alternatives --install /usr/bin/pip3 pip3 /usr/bin/pip3 100 
 
 # Get repository from git and create env file
-cd /home/ubuntu
 git clone https://github.com/DavidILLX/diabetes_mlops.git
 cd diabetes_mlops
 
 cat <<EOT > .env
 AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
-AWS_REGION=eu-central-1
+AWS_REGION=eu-north-1
 
 KAGGLE_USERNAME=your-kaggle-username
 KAGGLE_KEY=your-kaggle-key
-EOT
 
-# --- Nastavení vlastnictví souborů pro uživatele ubuntu ---
-chown -R ubuntu:ubuntu /home/ubuntu/diabetes_mlops
+AIRFLOW_UID=50000
+AIRFLOW_PROJ_DIR=./Orchestration
+AIRFLOW_IMAGE_NAME=apache/airflow:2.8.1
+EOT
 
 
 

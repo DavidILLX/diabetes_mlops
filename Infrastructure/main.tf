@@ -160,6 +160,14 @@ resource "aws_security_group" "diabetes_security_group" {
   }
 
   ingress {
+    description = "Jupyter notebook port"
+    from_port   = 8888
+    to_port     = 8888
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  ingress {
     description = "Adminer custom port"
     from_port   = 8081
     to_port     = 8081
@@ -204,6 +212,21 @@ resource "aws_db_instance" "db_instance_mlflow" {
 
   publicly_accessible = false
   skip_final_snapshot = true
+}
+
+resource "postgresql_database" "mlflow_db" {
+  name = var.db_mlflow
+  depends_on = [aws_db_instance.db_instance_mlflow]
+}
+
+resource "postgresql_database" "airflow_db" {
+  name = var.db_airflow
+  depends_on = [aws_db_instance.db_instance_mlflow]
+}
+
+resource "postgresql_database" "grafana_db" {
+  name = var.db_grafana
+  depends_on = [aws_db_instance.db_instance_mlflow]
 }
 
 # EC2 Instance

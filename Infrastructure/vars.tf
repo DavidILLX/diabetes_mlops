@@ -29,6 +29,7 @@ variable "evidently_data_bucket" {
   description = "Name of the bucket for Evidently reports"
   default     = "evidently-data-bucket"
 }
+
 variable "security_group_name" {
   description = "Name of the aws security group"
   default     = "diabetes-security-group"
@@ -128,4 +129,19 @@ variable "mlops_key_name" {
 variable "mlops_key_path" {
   description = "Path to the key"
   default     = "~/.ssh/mlops.pub"
+}
+
+variable "db_airflow" {
+  description = "Name of the database for Airflow"
+  default = "airflow"
+}
+
+variable "db_mlflow" {
+  description = "Name of the database for MLflow"
+  default = "mlflow"
+}
+
+variable "db_mlflow" {
+  description = "Name of the database for Grafana"
+  default = "grafana"
 }
