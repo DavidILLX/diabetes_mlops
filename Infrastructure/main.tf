@@ -128,7 +128,7 @@ resource "aws_security_group" "diabetes_security_group" {
   }
 
   ingress {
-    description = "Flask API"
+    description = "MLflow"
     from_port   = 5000
     to_port     = 5000
     protocol    = "tcp"

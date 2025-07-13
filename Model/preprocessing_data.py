@@ -4,8 +4,6 @@ import logging
 import argparse
 import boto3
 from io import BytesIO
-import pyarrow.parquet as pq
-import pyarrow as pa
 
 from dotenv import load_dotenv
 from pathlib import Path
@@ -113,7 +111,7 @@ def upload_to_s3(input, name):
             try:
                 buffer.seek(0)
                 s3.upload_fileobj(Fileobj=buffer, Bucket=aws_bucket, Key=processed_folder)
-                logging.info('Processed files uploaded to S3 successfully.')
+                logging.info(f'Processed file {name} uploaded to S3 successfully.')
             except Exception as e:
                 logging.error(f'Failed to upload preprocessed files to S3 details - {e}')
 
@@ -127,7 +125,7 @@ def upload_to_s3(input, name):
             try:
                 buffer.seek(0)
                 s3.upload_fileobj(Fileobj=buffer, Bucket=aws_bucket, Key=raw_folder)
-                logging.info('Files uploaded to S3 successfully.')
+                logging.info(f'File {name} uploaded to S3 successfully.')
             except Exception as e:
                 logging.error(f'Failed to upload files to S3 details - {e}')
 

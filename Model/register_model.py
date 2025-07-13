@@ -2,7 +2,11 @@ import mlflow
 import logging
 import pandas as pd
 import xgboost as xgb
+import os
+import boto3
 
+from io import BytesIO
+from dotenv import load_dotenv
 from pathlib import Path
 from mlflow.tracking import MlflowClient
 from mlflow.entities import ViewType
@@ -12,19 +16,31 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, accuracy_score, recall_score, classification_report
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 mlflow.set_tracking_uri('http://mlflow:5000')
+load_dotenv()
 
-def load_parquet(prefix: str):
-    input_dir = Path(__file__).resolve().parent.parent / 'Data'
+aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+aws_region = os.getenv('AWS_REGION')
 
-    X = pd.read_parquet(input_dir / f'X_{prefix}.parquet')
-    y = pd.read_parquet(input_dir / f'y_{prefix}.parquet').squeeze()
+s3 = boto3.client(
+    service_name='s3',
+    aws_access_key_id=aws_access_key_id,
+    aws_secret_access_key=aws_secret_access_key,
+    region_name=aws_region
+)
 
-    logging.info(f"Loaded X from {input_dir / f'X_{prefix}.parquet'}")
-    logging.info(f"Loaded y from {input_dir / f'y_{prefix}.parquet'}")
+def load_parquet_from_s3(type: str):
+    buffer = BytesIO()
+    bucket = 'diabetes-data-bucket'
+    key = f'processed_data/{type}.parquet'
+    
+    s3.download_fileobj(Fileobj=buffer, Bucket=bucket, Key=key)
+    buffer.seek(0)
+    
+    df = pd.read_parquet(buffer)
 
-    return X, y
+    return df
 
 def dict_change_dtypes(params):
     parsed_params = {}
@@ -94,8 +110,10 @@ def register_best_model():
     add_tags(model)
 
 def catboost_train(params):
-    X_train, y_train = load_parquet(prefix = 'train')
-    X_test, y_test = load_parquet(prefix = 'test')
+    X_train = load_parquet_from_s3(type = 'X_train')
+    y_train = load_parquet_from_s3(type = 'y_train')
+    X_test = load_parquet_from_s3(type = 'X_test')
+    y_test = load_parquet_from_s3(type = 'y_test')
 
     categorical_features_indices = [X_train.columns.get_loc(col) for col in ['Age', 'GenHlth', 'Education', 'Income']]
 
@@ -135,8 +153,10 @@ def catboost_train(params):
         logging.info(f'Catboost model registered: {model_uri}')
 
 def xgboost_train(params):
-    X_train, y_train = load_parquet(prefix='train')
-    X_test, y_test = load_parquet(prefix='test')
+    X_train = load_parquet_from_s3(type = 'X_train')
+    y_train = load_parquet_from_s3(type = 'y_train')
+    X_test = load_parquet_from_s3(type = 'X_test')
+    y_test = load_parquet_from_s3(type = 'y_test')
 
     params = dict_change_dtypes(params)
     with mlflow.start_run() as run:
@@ -179,8 +199,10 @@ def xgboost_train(params):
         print(f'XGBoost model registered: {model_uri}')
 
 def random_forest_train(params):
-    X_train, y_train = load_parquet(prefix='train')
-    X_test, y_test = load_parquet(prefix='test')
+    X_train = load_parquet_from_s3(type = 'X_train')
+    y_train = load_parquet_from_s3(type = 'y_train')
+    X_test = load_parquet_from_s3(type = 'X_test')
+    y_test = load_parquet_from_s3(type = 'y_test')
 
     params = dict_change_dtypes(params)
     with mlflow.start_run() as run:
@@ -216,8 +238,10 @@ def random_forest_train(params):
         logging.info(f'Random Forest model registered: {model_uri}')
 
 def logistic_regression_train(params):
-    X_train, y_train = load_parquet(prefix='train')
-    X_test, y_test = load_parquet(prefix='test')
+    X_train = load_parquet_from_s3(type = 'X_train')
+    y_train = load_parquet_from_s3(type = 'y_train')
+    X_test = load_parquet_from_s3(type = 'X_test')
+    y_test = load_parquet_from_s3(type = 'y_test')
 
     params = dict_change_dtypes(params)
     with mlflow.start_run() as run:
@@ -260,7 +284,7 @@ def add_tags(model):
         model_name = 'final-xgboost-model'
     if model == 'Random Forest':
         model_name = 'final-randomforest-model'
-    if model == 'Logistic Regressiob':
+    if model == 'Logistic Regression':
         model_name = 'final-logreg-model'
         
     versions = client.get_latest_versions(name = model_name)
@@ -272,7 +296,7 @@ def add_tags(model):
 
     client.set_registered_model_alias(name=model_name,alias="Champion", version=version)
 
-    champion_version = versions[0]  # Latest version
+    champion_version = versions[0]
 
     old_champion = None
     for v in versions[1:]:

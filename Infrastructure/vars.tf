@@ -107,7 +107,7 @@ variable "ami" {
 
 variable "ec2_instance_name" {
   description = "Instance for EC2"
-  default     = "t3.micro"
+  default     = "c6i.2xlarge"
 }
 
 variable "mlops_tag" {

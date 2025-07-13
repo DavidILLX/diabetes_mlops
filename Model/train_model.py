@@ -6,6 +6,7 @@ import pandas as pd
 import xgboost as xgb
 import os
 
+from dotenv import load_dotenv
 from io import BytesIO
 from pathlib import Path
 from mlflow.tracking import MlflowClient
@@ -18,8 +19,8 @@ from hyperopt import fmin, tpe, hp, STATUS_OK, Trials
 from hyperopt.pyll import scope
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 mlflow.set_tracking_uri('http://mlflow:5000')
+load_dotenv()
 
 aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
 aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')

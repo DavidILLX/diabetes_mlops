@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 sudo apt-get update -y
 sudo apt-get install -y docker.io docker-compose git
 sudo apt install -y software-properties-common
@@ -18,6 +20,22 @@ sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 
 # Chnaging so pip uses 3.11
 sudo update-alternatives --install /usr/bin/pip3 pip3 /usr/bin/pip3 100 
 
+# Get repository from git and create env file
+cd /home/ubuntu
+git clone https://github.com/DavidILLX/diabetes_mlops.git
+cd diabetes_mlops
+
+cat <<EOT > .env
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=eu-central-1
+
+KAGGLE_USERNAME=your-kaggle-username
+KAGGLE_KEY=your-kaggle-key
+EOT
+
+# --- Nastavení vlastnictví souborů pro uživatele ubuntu ---
+chown -R ubuntu:ubuntu /home/ubuntu/diabetes_mlops
 
 
 
