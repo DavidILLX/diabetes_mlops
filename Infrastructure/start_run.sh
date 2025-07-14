@@ -26,9 +26,11 @@ sudo apt install -y jupyter || { echo "Jupyter installation failed"; exit 1; }
 cd /home/ubuntu/
 
 # Install pipenv and add PATH
-sudo pip install --user pipenv || { echo "Pipenv installation failed"; exit 1; }
-sudo bash -c 'echo "export PATH=/home/ubuntu/.local/bin:\$PATH" >> /home/ubuntu/.bashrc'
-echo "Added PATH to .bashrc"
+sudo -u ubuntu -i bash <<'EOF'
+python3.10 -m pip install --user pipenv || { echo "Pipenv installation failed"; exit 1; }
+grep -qxF 'export PATH=$HOME/.local/bin:$PATH' ~/.bashrc || echo 'export PATH=$HOME/.local/bin:$PATH' >> ~/.bashrc
+echo "Pipenv installed and PATH updated for ubuntu user"
+EOF
 
 # Get repository from git and create env file
 echo "Attempting to clone repository"
