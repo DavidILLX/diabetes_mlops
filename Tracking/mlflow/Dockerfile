@@ -1,14 +1,13 @@
-FROM python:3.12-slim
+FROM python:3.10-slim
 
-RUN pip install setuptools
+RUN apt-get update && apt-get install -y gcc libpq-dev curl && \
+    pip install --no-cache-dir pipenv setuptools
 
-RUN pip install mlflow==2.12.1
+WORKDIR /app
 
-EXPOSE 5000
+COPY Pipfile Pipfile.lock /app/
 
-CMD [ \
-    "mlflow", "server", \
-    "--backend-store-uri", "sqlite:///home/mlflow_data/mlflow.db", \
-    "--host", "0.0.0.0", \
-    "--port", "5000" \
+RUN pipenv install --deploy --system
+
+EXPOSE 5000  "--port", "5000" \
 ]

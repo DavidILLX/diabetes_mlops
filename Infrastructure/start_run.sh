@@ -50,6 +50,9 @@ if [ $success -ne 1 ]; then
 fi
 echo "Repository cloned successfully"
 
+# Issue tiwh Data directory only belonging to root
+sudo chown -R 1000:1000 diabetes-mlops/Data
+
 # Get to the repository
 cd diabetes_mlops/
 

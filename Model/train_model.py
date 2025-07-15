@@ -40,9 +40,16 @@ def load_parquet_from_s3(type):
     
     s3.download_fileobj(Fileobj=buffer, Bucket=bucket, Key=key)
     buffer.seek(0)
-    
+
     df = pd.read_parquet(buffer)
-    return df
+
+    if "y" in type.lower():
+        if isinstance(df, pd.DataFrame):
+            return df.squeeze().values.ravel()
+        else:
+            return df.ravel()
+    else:
+        return df
 
 def load_parquet(prefix: str):
     input_dir = Path('/app/Data')

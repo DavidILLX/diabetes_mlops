@@ -7,6 +7,10 @@ import pandas as pd
 from pathlib import Path
 import psycopg2
 import os
+import boto3
+import pickle
+from io import BytesIO
+from dotenv import load_dotenv
 from evidently import Report, Dataset, DataDefinition, BinaryClassification
 from evidently.ui.workspace import RemoteWorkspace
 from evidently.sdk.panels import *
@@ -17,12 +21,25 @@ from evidently.presets import DataSummaryPreset, DataDriftPreset, Classification
 from evidently.tests import *
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]: %(message)s")
+load_dotenv()
+
+aws_access_key_id = os.getenv('AWS_ACCESS_KEY_ID')
+aws_secret_access_key = os.getenv('AWS_SECRET_ACCESS_KEY')
+aws_region = os.getenv('AWS_REGION')
+
+s3 = boto3.client(
+    service_name='s3',
+    aws_access_key_id=aws_access_key_id,
+    aws_secret_access_key=aws_secret_access_key,
+    region_name=aws_region
+)
 
 CONNECTION_STRING = "host=postgres port=5432 user=grafana password=grafana"
-CONNECTION_STRING_DB = CONNECTION_STRING + " dbname=grafana"
+CONNECTION_STRING_DB = CONNECTION_STRING + " dbname=grafana-1"
 
 mlflow.set_tracking_uri('http://mlflow:5000')
 client = MlflowClient()
+buffer = BytesIO()
 
 def get_final_model():
     experiment_id = client.search_experiments()
@@ -37,22 +54,25 @@ def get_final_model():
     run_name = runs[0].info.run_name
     run_id = runs[0].info.run_id
     run_artifacts_id = runs[0].info.artifact_uri
-    model_uri =runs[0].data.tags['ModelURI']
+    model_uri = runs[0].data.tags['ModelURI']
 
-    dst_path = '/app/Monitoring'
-    os.makedirs(dst_path, exist_ok=True)
+    bucket = 'mlflow-bucket-diabetes'
+    key = f'{experiment_id}/artifacts/model/'
 
     logging.info(f'Final experiment found at: {model_uri} as {run_name} with ID: {run_artifacts_id}')
 
-    local_path = client.download_artifacts(run_id, 'model', dst_path=dst_path)
-
     try:
-        model = mlflow.xgboost.load_model(local_path)
-        logging.info('Model artifact found and loaded')
-    except Exception as e:
-        logging.error(f'Error when looking for model: {e}')
+        model = s3.download_fileobj(Fileobj=buffer, Bucket=bucket, Key=key)
+        buffer.seek(0)
 
-    return model
+        booster = xgb.Booster()
+        booster.load_model(buffer)
+
+        logging.info(f'Model: {run_id} found and dowloaded')
+        return model
+    except Exception as e:
+        logging.error(f'No model was found/dowloaded. Details - {e}')
+        return None
 
 def load_and_prepare_data():
     input_dir = Path(__file__).resolve().parent.parent / 'Data'
@@ -68,9 +88,30 @@ def load_and_prepare_data():
 
     return X_ref, y_ref, X_curr, y_curr
 
+def load_data_from_s3(type):
+    buffer = BytesIO()
+    bucket = 'diabetes-data-bucket'
+    key = f'processed_data/{type}.parquet'
+    
+    s3.download_fileobj(Fileobj=buffer, Bucket=bucket, Key=key)
+    buffer.seek(0)
+
+    df = pd.read_parquet(buffer)
+
+    if "y" in type.lower():
+        if isinstance(df, pd.DataFrame):
+            return df.squeeze().values.ravel()
+        else:
+            return df.ravel()
+    else:
+        return df
+
 def model_predictions():  
 
-    X_ref, y_ref, X_curr, y_curr = load_and_prepare_data()
+    X_ref = load_data_from_s3('X_ref')
+    y_ref = load_data_from_s3('y_ref')
+    X_curr = load_data_from_s3('X_train')
+    y_curr = load_data_from_s3('y_train')
     model = get_final_model()
 
     # Create predictions for referential data

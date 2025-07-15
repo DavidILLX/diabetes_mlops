@@ -278,7 +278,7 @@ services:
     volumes:
       - ./Monitoring/config/grafana_datasources.yaml:/etc/grafana/provisioning/datasources/datasource.yaml:ro
       - ./Monitoring/config/grafana_dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
-      - ./Monitoring//dashboards:/opt/grafana/dashboards
+      - ./Monitoring/dashboards:/opt/grafana/dashboards
     networks:
       - project_network
     restart: always
