@@ -35,7 +35,7 @@ s3 = boto3.client(
     region_name=aws_region
 )
 
-CONNECTION_STRING = "host=grafana-1.cxe0cweskaer.eu-north-1.rds.amazonaws.com port=5432 user=grafana password=grafanagrafana"
+CONNECTION_STRING = "host=<GRFANA_DB_ENDPOINT> port=5432 user=grafana password=grafanagrafana"
 CONNECTION_STRING_DB = CONNECTION_STRING + " dbname=grafana"
 
 mlflow.set_tracking_uri('http://mlflow:5000')
