@@ -58,8 +58,8 @@ x-airflow-common:
   environment:
     &airflow-common-env
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflowairflow@postgres/airflow
-    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflowairflow@postgres/airflow
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflowairflow@<AIRFLOW_DB_ENDPOINT>
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflowairflow@<AIRFLOW_DB_ENDPOINT>
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
@@ -81,39 +81,15 @@ x-airflow-common:
     - ./Model:/app/Model
     - ./Data:/app/Data
     - ./Monitoring:/app/Monitoring
-    - ./artifacts:/app/artifacts
-    - ~/.kaggle/kaggle.json:/home/airflow/.config/kaggle/kaggle.json:ro
   user: "${AIRFLOW_UID:-50000}:0"
   depends_on:
     &airflow-common-depends-on
     redis:
       condition: service_healthy
-    postgres:
-      condition: service_healthy
-    env_file:
-      - .env
+  env_file:
+    - .env
 
 services:
-  postgres:
-    image: postgres:13
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
-      POSTGRES_DB: airflow
-    networks:
-      - project_network
-    volumes:
-      - postgres-db-volume:/var/lib/postgresql/data
-      - ./Monitoring/init/grafana_db.sql:/docker-entrypoint-initdb.d/grafana_db.sql:ro
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "airflow"]
-      interval: 10s
-      retries: 5
-      start_period: 5s
-    restart: always
-
   redis:
     image: redis:latest
     expose:
@@ -282,15 +258,13 @@ services:
     networks:
       - project_network
     restart: always
-    depends_on:
-      - postgres
 
   mlflow:
     command: >
       mlflow server 
       --host 0.0.0.0 
       --port 5000 
-      --backend-store-uri postgresql://<DB_CONNECTION> 
+      --backend-store-uri postgresql://mlflow:mlflowmlflow@<MLFLOW_DB_ENDPOINT> 
       --default-artifact-root s3://mlflow-bucket-diabetes
     build:
       context: .
@@ -311,10 +285,19 @@ services:
     networks:
       - project_network
 
+  evidently:
+    image: evidently/evidently-service:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./workspace:/app/workspace
+    restart: unless-stopped
+    networks:
+      - project_network
+
 networks:
   project_network:
     driver: bridge
 
 volumes:
-  postgres-db-volume:
   grafana_data: {}

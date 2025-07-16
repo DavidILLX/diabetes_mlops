@@ -9,6 +9,7 @@ import psycopg2
 import os
 import boto3
 import pickle
+import tempfile
 from io import BytesIO
 from dotenv import load_dotenv
 from evidently import Report, Dataset, DataDefinition, BinaryClassification
@@ -34,8 +35,8 @@ s3 = boto3.client(
     region_name=aws_region
 )
 
-CONNECTION_STRING = "host=postgres port=5432 user=grafana password=grafana"
-CONNECTION_STRING_DB = CONNECTION_STRING + " dbname=grafana-1"
+CONNECTION_STRING = "host=grafana-1.cxe0cweskaer.eu-north-1.rds.amazonaws.com port=5432 user=grafana password=grafanagrafana"
+CONNECTION_STRING_DB = CONNECTION_STRING + " dbname=grafana"
 
 mlflow.set_tracking_uri('http://mlflow:5000')
 client = MlflowClient()
@@ -57,7 +58,7 @@ def get_final_model():
     model_uri = runs[0].data.tags['ModelURI']
 
     bucket = 'mlflow-bucket-diabetes'
-    key = f'{experiment_id}/artifacts/model/'
+    key = f'{experiment_id}/{run_id}/artifacts/model/model.xgb'
 
     logging.info(f'Final experiment found at: {model_uri} as {run_name} with ID: {run_artifacts_id}')
 
@@ -65,11 +66,14 @@ def get_final_model():
         model = s3.download_fileobj(Fileobj=buffer, Bucket=bucket, Key=key)
         buffer.seek(0)
 
-        booster = xgb.Booster()
-        booster.load_model(buffer)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xgb") as tmp:
+            tmp.write(buffer.read())
+            tmp.flush()
+            booster = xgb.Booster()
+            booster.load_model(tmp.name)
 
         logging.info(f'Model: {run_id} found and dowloaded')
-        return model
+        return booster
     except Exception as e:
         logging.error(f'No model was found/dowloaded. Details - {e}')
         return None
@@ -105,6 +109,18 @@ def load_data_from_s3(type):
             return df.ravel()
     else:
         return df
+
+def load_reports_to_s3(report, report_name, type_of):
+    bucket = 'evidently-data-bucket'
+
+    if type_of.lower().strip() == 'classification': 
+        s3.upload_file(report, bucket, f'classification/{report_name}')
+        logging.info(f'Classification report {report_name} uploaded to S3')
+    elif type_of.lower().strip() == 'prediction':
+        s3.upload_file(report, bucket, f'predictions/{report_name}')
+        logging.info(f'Predictions report {report_name} uploaded to S3')
+    else:
+        logging.error(f'Unknow type of report - {type_of}')
 
 def model_predictions():  
 
@@ -159,14 +175,20 @@ def data_definition():
     return ref_dataset, curr_dataset
 
 def create_workspace(name):
-    evidently_url = 'http://host.docker.internal:8000'
+    evidently_url = 'http://evidently:8000'
 
     workspace = RemoteWorkspace(base_url=evidently_url)
-
+    existing_projects = workspace.list_projects()
     description = 'Monitoring for Diabetes project'
-    project = workspace.create_project(name, description)
 
-    return project, workspace
+    for project in existing_projects:
+        if project.name == name:
+            logging.info(f"Workspace already exists: {name}")
+            return project, workspace, 1
+
+    logging.info(f"Creating new workspace: {name}")
+    project = workspace.create_project(name, description)
+    return project, workspace, 0
 
 def creating_reports():
 
@@ -194,22 +216,32 @@ def creating_reports():
     logging.info('Saved reports for classification and predictions summary.')
 
     name = 'Diabetes project monitoring'
-    project, workspace = create_workspace(name)
-    logging.info(f'Workspace created for {name}.')
+    project, workspace, status = create_workspace(name)
 
     today = dt.datetime.now()
     today = today.strftime('%d.%m.%Y-%H')
 
-    name_report = f'Report for Classification model: {today}'
+    name_report = f'Report for Classification model {today}.html'
     workspace.add_run(project.id, snapshot, name=name_report)
     logging.info(f'Created - Report for Classification model: {today}')
+    load_reports_to_s3('report.html', name_report, 'classification')
 
-    name_report_predictions = f'Report for predictions statistics: {today}'
+    name_report_predictions = f'Report for predictions statistics {today}.html'
     workspace.add_run(project.id, snapshot_predictions, name=name_report_predictions)
     logging.info(f'Created - Report for predictions statistics: {today}')
+    load_reports_to_s3('report_predictions.html', name_report_predictions, 'prediction')
 
-    create_dashboard(project)
+    if status == 0:
+        create_dashboard(project)
+
     insert_metrics_into_db(snapshot, snapshot_predictions)
+
+    try:
+        os.remove('report.html')
+        os.remove('report_predictions.html')
+        logging.info('Temporary report files deleted.')
+    except Exception as e:
+        logging.warning(f'Failed to delete temporary report files: {e}')
 
 def create_dashboard(project):
 
@@ -366,7 +398,7 @@ def insert_metrics_into_db(snapshot, snapshot_predictions):
                 recall,
                 f1_score,
                 roc_auc)) 
-              logging.info(f'Recors inserted with timestamp:{report_timestamp}')
+              logging.info(f'Records inserted with timestamp: {report_timestamp}')
 
 
 if __name__ == '__main__':

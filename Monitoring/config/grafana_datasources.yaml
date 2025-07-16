@@ -7,11 +7,11 @@ datasources:
   - name: PostgreSQL
     type: postgres
     access: proxy
-    url: postgres:5432
+    url: <GRAFANA_DB_ENDPOINT>:5432
     database: grafana
     user: grafana
     secureJsonData:
-      password: 'grafana'
+      password: 'grafanagrafana'
     jsonData:
       sslmode: 'disable'
       database: grafana

@@ -9,5 +9,4 @@ COPY Pipfile Pipfile.lock /app/
 
 RUN pipenv install --deploy --system
 
-EXPOSE 5000  "--port", "5000" \
-]
+EXPOSE 5000
