@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetes Prediction</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-width: 900px; /* Zvětšujeme max-width pro sloupce */
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        h1, h2 {
+            color: #0056b3;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 2.5em;
+        }
+        h2 {
+            font-size: 1.8em;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        .form-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* Dva sloupce */
+            gap: 20px 40px; /* Mezery mezi řádky a sloupci */
+        }
+        @media (max-width: 768px) {
+            .form-columns {
+                grid-template-columns: 1fr; /* Na menších obrazovkách jeden sloupec */
+            }
+        }
+        .form-group {
+            margin-bottom: 10px; /* Mírně zmenšený margin, protože je to ve sloupcích */
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 3px;
+            font-weight: bold;
+            color: #333;
+            font-size: 1.1em; /* Větší a výraznější label */
+        }
+        .form-group .description {
+            font-size: 0.95em; /* Větší popis */
+            color: #555;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .form-group input[type="number"],
+        .form-group select {
+            width: 100%; /* Plná šířka ve sloupci */
+            max-width: 300px; /* Maximální šířka pro input/select */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        .form-group input[type="radio"] {
+            margin-right: 5px;
+        }
+        .form-group .radio-options label {
+            display: inline-block;
+            margin-right: 15px;
+            font-weight: normal;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1em;
+            width: 100%;
+            margin-top: 20px; /* Více místa nad tlačítkem */
+            grid-column: 1 / -1; /* Tlačítko přes celou šířku pod sloupci */
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .prediction-result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 1.4em;
+            font-weight: bold;
+            text-align: center;
+            border: 2px solid;
+            display: block; /* Zajišťuje, že se zobrazí, když Flask pošle data */
+        }
+        .prediction-result.diabetes {
+            background-color: #ffe0e6;
+            color: #d9534f;
+            border-color: #d9534f;
+        }
+        .prediction-result.no-diabetes {
+            background-color: #e6ffed;
+            color: #28a745;
+            border-color: #28a745;
+        }
+        .note {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 20px;
+            text-align: center;
+        }
+        footer {
+            margin-top: 40px;
+            font-size: 0.85em;
+            color: #777;
+            text-align: center;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Diabetes Risk Prediction</h1>
+        <p style="text-align: center;">Welcome! Please enter the required information to estimate your diabetes risk.</p>
+
+        <h2>Enter Data for Prediction</h2>
+        <form action="/predict" method="post">
+            <div class="form-columns">
+                <div class="form-group">
+                    <label for="BMI">Body Mass Index (BMI):</label>
+                    <span class="description">Description: Your Body Mass Index.</span>
+                    <input type="number" id="BMI" name="BMI" step="0.1" required min="10" max="60">
+                </div>
+
+                <div class="form-group">
+                    <label for="Age">Age Category:</label>
+                    <span class="description">Description: Your age group (1-13, e.g., 1 = 18-24 years, 13 = 80 or older).</span>
+                    <select id="Age" name="Age" required>
+                        <option value="">Select...</option>
+                        <option value="1">1 (18-24 years)</option>
+                        <option value="2">2 (25-29 years)</option>
+                        <option value="3">3 (30-34 years)</option>
+                        <option value="4">4 (35-39 years)</option>
+                        <option value="5">5 (40-44 years)</option>
+                        <option value="6">6 (45-49 years)</option>
+                        <option value="7">7 (50-54 years)</option>
+                        <option value="8">8 (55-59 years)</option>
+                        <option value="9">9 (60-64 years)</option>
+                        <option value="10">10 (65-69 years)</option>
+                        <option value="11">11 (70-74 years)</option>
+                        <option value="12">12 (75-79 years)</option>
+                        <option value="13">13 (80 years or older)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="Income">Income Category:</label>
+                    <span class="description">Description: Your annual income on a scale (1-8, e.g., 1 = less than $10,000, 8 = $75,000 or more).</span>
+                    <select id="Income" name="Income" required>
+                        <option value="">Select...</option>
+                        <option value="1">1 (Less than $10,000)</option>
+                        <option value="2">2 ($10,000 - $14,999)</option>
+                        <option value="3">3 ($15,000 - $19,999)</option>
+                        <option value="4">4 ($20,000 - $24,999)</option>
+                        <option value="5">5 ($25,000 - $34,999)</option>
+                        <option value="6">6 ($35,000 - $49,999)</option>
+                        <option value="7">7 ($50,000 - $74,999)</option>
+                        <option value="8">8 ($75,000 or more)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="PhysHlth">Physical Health Not Good (Days in past 30):</label>
+                    <span class="description">Description: Number of days your physical health was not good in the past 30 days.</span>
+                    <input type="number" id="PhysHlth" name="PhysHlth" required min="0" max="30">
+                </div>
+
+                <div class="form-group">
+                    <label for="Education">Education Level:</label>
+                    <span class="description">Description: Your education level (1-6, from 1 = never attended school to 6 = college graduate).</span>
+                    <select id="Education" name="Education" required>
+                        <option value="">Select...</option>
+                        <option value="1">1 (Never attended school or only kindergarten)</option>
+                        <option value="2">2 (Elementary school)</option>
+                        <option value="3">3 (Some high school, no diploma)</option>
+                        <option value="4">4 (High school graduate)</option>
+                        <option value="5">5 (Some college or technical school, no degree)</option>
+                        <option value="6">6 (College graduate)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="GenHlth">General Health Rating:</label>
+                    <span class="description">Description: Your general health rating (1-5, where 1 = excellent, 5 = poor).</span>
+                    <select id="GenHlth" name="GenHlth" required>
+                        <option value="">Select...</option>
+                        <option value="1">1 (Excellent)</option>
+                        <option value="2">2 (Very Good)</option>
+                        <option value="3">3 (Good)</option>
+                        <option value="4">4 (Fair)</option>
+                        <option value="5">5 (Poor)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="MentHlth">Mental Health Not Good (Days in past 30):</label>
+                    <span class="description">Description: Number of days your mental health was not good in the past 30 days.</span>
+                    <input type="number" id="MentHlth" name="MentHlth" required min="0" max="30">
+                </div>
+                
+                <div class="form-group">
+                    <label>High Blood Pressure:</label>
+                    <span class="description">Description: Do you have high blood pressure? (0 = no, 1 = yes).</span>
+                    <div class="radio-options">
+                        <input type="radio" id="HighBP_no" name="HighBP" value="0" required>
+                        <label for="HighBP_no">No</label>
+                        <input type="radio" id="HighBP_yes" name="HighBP" value="1">
+                        <label for="HighBP_yes">Yes</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Consume Fruit Regularly:</label>
+                    <span class="description">Description: Do you consume fruit 1 or more times per day? (0 = no, 1 = yes).</span>
+                    <div class="radio-options">
+                        <input type="radio" id="Fruits_no" name="Fruits" value="0" required>
+                        <label for="Fruits_no">No</label>
+                        <input type="radio" id="Fruits_yes" name="Fruits" value="1">
+                        <label for="Fruits_yes">Yes</label>
+                    </div>
+                </div>
+            </div> <button type="submit">Get Prediction</button>
+        </form>
+
+        {% if prediction_result is not none %}
+            <div class="prediction-result {% if prediction_result == 'Diabetes' %}diabetes{% else %}no-diabetes{% endif %}">
+                Your Prediction: {% if prediction_result == 'Diabetes' %} <span style="font-weight: bold;">Risk of Diabetes (1)</span> {% else %} <span style="font-weight: bold;">No Risk of Diabetes (0)</span> {% endif %}
+            </div>
+        {% endif %}
+
+        <p class="note">
+            This prediction is based on a machine learning model and is for informational purposes only. It does not replace medical diagnosis or consultation with a professional.
+        </p>
+    </div>
+    <footer>
+        <p>&copy; 2025 Diabetes Risk Prediction. All rights reserved.</p>
+    </footer>
+</body>
+</html>
