@@ -298,16 +298,17 @@ services:
   flask:
     restart: always
     build:
-      context: ./App
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: App/Dockerfile
     ports:
       - "9696:5000"
     environment:
       FLASK_ENV: development
-      FLASK_APP: flask.py
+      FLASK_APP: app.py
       FLASK_DEBUG: 1
     volumes:
       - ./App:/app
+    command: pipenv run flask run --host=0.0.0.0
     networks:
       - project_network
 

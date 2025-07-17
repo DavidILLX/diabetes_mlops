@@ -9,8 +9,12 @@ import psycopg2
 import os
 import boto3
 import tempfile
+import joblib
 from io import BytesIO
 from dotenv import load_dotenv
+from catboost import CatBoostClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from evidently import Report, Dataset, DataDefinition, BinaryClassification
 from evidently.ui.workspace import RemoteWorkspace
 from evidently.sdk.panels import *
@@ -34,7 +38,8 @@ s3 = boto3.client(
     region_name=aws_region
 )
 
-CONNECTION_STRING = "host=<GRFANA_DB_ENDPOINT> port=5432 user=grafana password=grafanagrafana"
+host = os.getenv('GRAFANA_DB_ENDPOINT')
+CONNECTION_STRING = f"host={host} port=5432 user=grafana password=grafanagrafana"
 CONNECTION_STRING_DB = CONNECTION_STRING + " dbname=grafana"
 
 mlflow.set_tracking_uri('http://mlflow:5000')
@@ -54,25 +59,56 @@ def get_final_model():
     run_name = runs[0].info.run_name
     run_id = runs[0].info.run_id
     run_artifacts_id = runs[0].info.artifact_uri
-    model_uri = runs[0].data.tags['ModelURI']
+
+    logging.info(f'Final experiment found as {run_artifacts_id} with ID: {run_name}')
 
     bucket = 'mlflow-bucket-diabetes'
-    key = f'{experiment_id}/{run_id}/artifacts/model/model.xgb'
+    prefix = f'{experiment_id}/{run_id}/artifacts/model/'
+    response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
 
-    logging.info(f'Final experiment found at: {model_uri} as {run_name} with ID: {run_artifacts_id}')
+    files = [obj['Key'] for obj in response.get('Contents', [])]
+    logging.info(f'Artifacts files: {files}')
+
+    model_key = None
+    for file_key in files:
+        if file_key.endswith('.xgb'):
+            model_key = file_key
+            model_type = 'xgboost'
+            break
+        elif file_key.endswith('.cb'):
+            model_key = file_key
+            model_type = 'catboost'
+            break
+        elif file_key.endswith('.pkl'):
+            model_key = file_key
+            model_type = 'sklearn'
+            break
+
+    logging.info(f'Model type is {model_type}')
+    logging.info(f'Model key for S3 is {model_key}')
 
     try:
-        model = s3.download_fileobj(Fileobj=buffer, Bucket=bucket, Key=key)
+        model = s3.download_fileobj(Fileobj=buffer, Bucket=bucket, Key=model_key)
         buffer.seek(0)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".xgb") as tmp:
-            tmp.write(buffer.read())
-            tmp.flush()
-            booster = xgb.Booster()
-            booster.load_model(tmp.name)
-
-        logging.info(f'Model: {run_id} found and dowloaded')
-        return booster
+        if model_type == 'xgboost':
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".xgb") as tmp:
+                tmp.write(buffer.read())
+                tmp.flush()
+                booster = xgb.Booster()
+                booster.load_model(tmp.name)
+                logging.info(f'Model: {run_id} found and dowloaded')
+                return booster, model_type
+        elif model_type == 'catboost':
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.cb') as tmp:
+                tmp.write(buffer.read())
+                tmp.flush()
+                model = CatBoostClassifier()
+                model.load_model(tmp.name)
+                return model, model_type
+        elif model_type == 'sklearn':
+            model = joblib.load(buffer)
+            return model
     except Exception as e:
         logging.error(f'No model was found/dowloaded. Details - {e}')
         return None
@@ -127,25 +163,64 @@ def model_predictions():
     y_ref = load_data_from_s3('y_ref')
     X_curr = load_data_from_s3('X_train')
     y_curr = load_data_from_s3('y_train')
-    model = get_final_model()
+    model, model_type = get_final_model()
 
-    # Create predictions for referential data
-    val = xgb.DMatrix(X_ref, label=y_ref)
-    y_pred_proba = model.predict(val)
-    X_ref['prediction_proba'] = y_pred_proba
-    ref_data = X_ref.copy()
-    ref_data['target'] = y_ref
+    if model_type == 'xgboost':
+        # Create predictions for referential data
+        val = xgb.DMatrix(X_ref, label=y_ref)
+        y_pred_proba = model.predict(val)
+        X_ref['prediction_proba'] = y_pred_proba
+        ref_data = X_ref.copy()
+        ref_data['target'] = y_ref
+        ref_data.to_parquet('reference_data.parquet')
 
-    ref_data.to_parquet('reference_data.parquet')
+        # Create predictions for current data
+        train = xgb.DMatrix(X_curr, label=y_curr)
+        y_pred_proba = model.predict(train)
+        curr_data = X_curr.copy()
+        curr_data['prediction_proba'] = y_pred_proba
+        curr_data['target'] = y_curr
+        return ref_data, curr_data
 
-    # Create predictions for current data
-    train = xgb.DMatrix(X_curr, label=y_curr)
-    y_pred_proba = model.predict(train)
-    curr_data = X_curr.copy()
-    curr_data['prediction_proba'] = y_pred_proba
-    curr_data['target'] = y_curr
+    elif model_type == 'catboost':
+        y_pred_proba = model.predict_proba(X_ref)[:, 1]
+        X_ref['prediction_proba'] = y_pred_proba
+        ref_data = X_ref.copy()
+        ref_data['target'] = y_ref
 
-    return ref_data, curr_data
+        y_pred_proba = model.predict_proba(X_curr)[:, 1]
+        curr_data = X_curr.copy()
+        curr_data['prediction_proba'] = y_pred_proba
+        curr_data['target'] = y_curr
+        return ref_data, curr_data
+
+    elif model_type == 'randomforest':
+        # Random Forest from sklearn 
+        y_pred_proba = model.predict_proba(X_ref)[:, 1]
+        X_ref['prediction_proba'] = y_pred_proba
+        ref_data = X_ref.copy()
+        ref_data['target'] = y_ref
+        y_pred_proba = model.predict_proba(X_curr)[:, 1]
+
+        curr_data = X_curr.copy()
+        curr_data['prediction_proba'] = y_pred_proba
+        curr_data['target'] = y_curr
+        return ref_data, curr_data
+
+    elif model_type == 'logisticregression':
+        # Logistic Regression from sklearn 
+        y_pred_proba = model.predict_proba(X_ref)[:, 1]
+        X_ref['prediction_proba'] = y_pred_proba
+        ref_data = X_ref.copy()
+        ref_data['target'] = y_ref
+
+        y_pred_proba = model.predict_proba(X_curr)[:, 1]
+        curr_data = X_curr.copy()
+        curr_data['prediction_proba'] = y_pred_proba
+        curr_data['target'] = y_curr
+        return ref_data, curr_data
+    else:
+        raise ValueError(f"Unknown model_type: {model_type}")
 
 def data_definition():
     ref_data, curr_data = model_predictions()
