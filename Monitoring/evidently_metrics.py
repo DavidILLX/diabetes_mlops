@@ -8,7 +8,6 @@ from pathlib import Path
 import psycopg2
 import os
 import boto3
-import pickle
 import tempfile
 from io import BytesIO
 from dotenv import load_dotenv

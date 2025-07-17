@@ -247,10 +247,9 @@
                 </div>
             </div> <button type="submit">Get Prediction</button>
         </form>
-
         {% if prediction_result is not none %}
             <div class="prediction-result {% if prediction_result == 'Diabetes' %}diabetes{% else %}no-diabetes{% endif %}">
-                Your Prediction: {% if prediction_result == 'Diabetes' %} <span style="font-weight: bold;">Risk of Diabetes (1)</span> {% else %} <span style="font-weight: bold;">No Risk of Diabetes (0)</span> {% endif %}
+                Your Prediction: {% if prediction_result == '1' %} <span style="font-weight: bold;">Risk of Diabetes (1)</span> {% else %} <span style="font-weight: bold;">No Risk of Diabetes (0)</span> {% endif %}
             </div>
         {% endif %}
 

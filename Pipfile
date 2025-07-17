@@ -21,6 +21,7 @@ psycopg2-binary = ">=2.9.9,<2.10"
 sqlalchemy = ">=1.4,<2.0"
 scipy = "*"
 gunicorn = "*"
+flask = "*"
 
 [dev-packages]
 pytest = "*"
