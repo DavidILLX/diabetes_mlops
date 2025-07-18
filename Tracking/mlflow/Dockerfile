@@ -8,5 +8,3 @@ WORKDIR /app
 COPY Pipfile Pipfile.lock /app/
 
 RUN pipenv install --deploy --system
-
-EXPOSE 5000

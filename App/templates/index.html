@@ -140,12 +140,12 @@
         <p style="text-align: center;">Welcome! Please enter the required information to estimate your diabetes risk.</p>
 
         <h2>Enter Data for Prediction</h2>
-        <form action="/predict" method="post">
+        <form action="/" method="post">
             <div class="form-columns">
                 <div class="form-group">
                     <label for="BMI">Body Mass Index (BMI):</label>
                     <span class="description">Description: Your Body Mass Index.</span>
-                    <input type="number" id="BMI" name="BMI" step="0.1" required min="10" max="60">
+                    <input type="number" id="BMI" name="BMI" step="0.1" required min="10" max="100">
                 </div>
 
                 <div class="form-group">
@@ -248,8 +248,8 @@
             </div> <button type="submit">Get Prediction</button>
         </form>
         {% if prediction_result is not none %}
-            <div class="prediction-result {% if prediction_result == 'Diabetes' %}diabetes{% else %}no-diabetes{% endif %}">
-                Your Prediction: {% if prediction_result == '1' %} <span style="font-weight: bold;">Risk of Diabetes (1)</span> {% else %} <span style="font-weight: bold;">No Risk of Diabetes (0)</span> {% endif %}
+            <div class="prediction-result {% if prediction_result == 1 %}diabetes{% else %}no-diabetes{% endif %}">
+                Your Prediction: {% if prediction_result == 1 %} <span style="font-weight: bold;">Risk of Diabetes</span> {% else %} <span style="font-weight: bold;">No Risk of Diabetes</span> {% endif %}
             </div>
         {% endif %}
 

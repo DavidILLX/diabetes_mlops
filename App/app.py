@@ -4,6 +4,7 @@ import pandas as pd
 import boto3
 import tempfile
 import xgboost as xgb
+import joblib
 from io import BytesIO
 from catboost import CatBoostClassifier
 
@@ -31,9 +32,6 @@ def prediction(predict_df):
     bucket = 'mlflow-bucket-diabetes'
 
     response = s3.list_objects_v2(Bucket=bucket)
-
-    prefix = f'{experiment_id}/{run_id}/artifacts/model/'
-    response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
 
     files = [obj['Key'] for obj in response.get('Contents', [])]
     logging.info(f'Artifacts files: {files}')
@@ -65,9 +63,11 @@ def prediction(predict_df):
                 tmp.flush()
                 booster = xgb.Booster()
                 booster.load_model(tmp.name)
-                logging.info(f'Model: {run_id} found and dowloaded')
-                y_pred_proba = booster.predict(predict_df)
+                logging.info(f'Model: {model_key} found and dowloaded')
+                pred = xgb.DMatrix(predict_df)
+                y_pred_proba = booster.predict(pred)
                 result = (y_pred_proba >= 0.5).astype(int)
+                logging.info(f'Result is: {result}')
                 return result
         elif model_type == 'catboost':
             with tempfile.NamedTemporaryFile(delete=False, suffix='.cb') as tmp:
@@ -77,10 +77,12 @@ def prediction(predict_df):
                 model.load_model(tmp.name)
                 y_pred_proba = model.predict_proba(predict_df)[:, 1]
                 result = (y_pred_proba >= 0.5).astype(int)
+                logging.info(f'Result is: {result}')
                 return result
         elif model_type == 'sklearn':
             model = joblib.load(buffer)
-            return 2
+            result = model.predict(predict_df)
+            return result
     except Exception as e:
         logging.error(f'No model was found/dowloaded. Details - {e}')
         return None
@@ -103,7 +105,7 @@ def index():
 
             result = prediction(predict_df)
 
-            return render_template('index.html', prediction_result = result)
+            return render_template('index.html', prediction_result = result[0])
         except (ValueError, TypeError):
             flash('Incorrect types of inputs')
             return redirect(url_for("index.html"))

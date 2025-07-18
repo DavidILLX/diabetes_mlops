@@ -308,9 +308,11 @@ services:
       FLASK_DEBUG: 1
     volumes:
       - ./App:/app
-    command: pipenv run flask run --host=0.0.0.0
+    command: flask run --host=0.0.0.0 --port=5000
     networks:
       - project_network
+    env_file:
+      - .env
 
 networks:
   project_network:
