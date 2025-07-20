@@ -50,7 +50,7 @@ x-airflow-common:
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
   image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:2.8.1}
-  build: 
+  build:
     context: .
     dockerfile: Orchestration/Dockerfile
   networks:
@@ -261,10 +261,10 @@ services:
 
   mlflow:
     command: >
-      mlflow server 
-      --host 0.0.0.0 
-      --port 5000 
-      --backend-store-uri postgresql://mlflow:mlflowmlflow@${MLFLOW_DB_ENDPOINT}/mlflow 
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql://mlflow:mlflowmlflow@${MLFLOW_DB_ENDPOINT}/mlflow
       --default-artifact-root s3://mlflow-bucket-diabetes
     build:
       context: .

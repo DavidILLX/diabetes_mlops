@@ -5,7 +5,7 @@
 kaggle.json
 *.csv
 
-# Terraform 
+# Terraform
 terraform.tfvars
 .terraform.lock.hcl
 .terraform

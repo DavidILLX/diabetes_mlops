@@ -1,0 +1,29 @@
+[tool.pylint.messages_control]
+
+disable = [
+    "C0114", # missing-module-docstring
+    "C0116", # missing-function-or-method-docstring
+    "W1203", # logging-fstring-interpolation
+    "W0703", # broad-excep
+    "C0103", # invalid-name
+    "R0914", # too-many-locals
+    "R0801", # duplicate-code
+    "W0622", # redefined-builtin
+    "W1309", # F-string errors -> trivial
+    "W0702", # bare-except
+    "E0401", # Unable to import '...' (import-error) -> Resolved in docker
+    "E0611", # No name '...' in module '...' (no-name-in-module) -> Resolved in docker
+    "E0602", # Defined text_values
+    "W0401", # Wildcard resolved in docker
+    "W0621", # Redefining e fro exceptions
+    "C0301", # Necessary long lines
+    "R1705", # Necessary else
+    "R1710",
+    "R1723",
+    "W0104", # Can be used for locall development
+    "W0614", # Imports are used
+    "W0612", # Panels for monitoring
+]
+
+[tool.isort]
+profile = "black" # isort kept reformating changes by black, using same default settings now
