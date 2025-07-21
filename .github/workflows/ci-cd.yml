@@ -56,7 +56,7 @@ jobs:
         working-directory: Infrastructure/
 
       - name: Show Terraform lock file
-        run: cat Infrastructure/terraform.lock.hcl
+        run: cat Infrastructure/.terraform.lock.hcl
 
       - name: Terraform Plan
         id: tf-plan
