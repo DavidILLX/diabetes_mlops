@@ -24,7 +24,13 @@ jobs:
         working-directory: .
         run: pip install pipenv && pipenv install --dev
 
-      - name: Basic formatting and linting and unit tests
+      - name: Setup Kaggle API credentials
+        run: |
+          mkdir -p ~/.config/kaggle
+          echo "${{ secrets.KAGGLE_JSON }}" > ~/.config/kaggle/kaggle.json
+          chmod 600 ~/.config/kaggle/kaggle.json
+
+      - name: Basic formatting, linting and unit tests
         working-directory: .
         run: pipenv run make all
 
