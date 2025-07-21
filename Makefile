@@ -12,10 +12,7 @@ format:
 	pipenv run isort .
 
 test:
-	pipenv run pytest Tests/test_preprocessiong.py
-
-test-integration:
-	pipenv run pytest Tests/test_integration.py
+	pipenv run pytest Tests/test_preprocessing.py
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -r {} +

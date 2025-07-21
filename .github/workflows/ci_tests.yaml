@@ -28,7 +28,6 @@ jobs:
         working-directory: .
         run: pipenv run make all
 
-
   tf-init:
     runs-on: ubuntu-latest
     needs: build-and-test
