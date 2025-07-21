@@ -36,6 +36,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
+    needs: build-and-test
     steps:
       - uses: actions/checkout@v2
 
@@ -56,7 +57,7 @@ jobs:
         working-directory: Infrastructure/
 
       - name: Show Terraform lock file
-        run: cat Infrastructure/terraform.lock.hcl
+        run: cat Infrastructure/.terraform.lock.hcl
 
       - name: Terraform Plan
         id: tf-plan
