@@ -136,6 +136,10 @@ variable "ami" {
   default     = "ami-03b371d239dfe4af4"
 }
 
+variable "mlops_key" {
+  type = string
+}
+
 variable "ec2_instance_name" {
   description = "Instance for EC2"
   default     = "c6i.2xlarge"

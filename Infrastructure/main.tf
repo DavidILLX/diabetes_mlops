@@ -256,6 +256,11 @@ resource "aws_db_instance" "db_instance_grafana" {
   skip_final_snapshot = true
 }
 
+resource "aws_key_pair" "mlops_key" {
+  key_name   = "mlops_key"
+  public_key = var.mlops_key
+}
+
 # EC2 Instance
 resource "aws_instance" "mlops_server" {
   ami               = var.ami

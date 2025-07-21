@@ -65,7 +65,7 @@ jobs:
 
       - name: Terraform Apply
         if: ${{ steps.tf-plan.outcome == 'success' }}
-        run: terraform apply -auto-approve
+        run: terraform apply -auto-approve -var="mlops_key=${{ secrets.MLOPS_SSH_PUBLIC_KEY }}"
         working-directory: Infrastructure/
 
       - name: Get EC2 Public IP
