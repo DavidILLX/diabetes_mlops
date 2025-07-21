@@ -60,7 +60,7 @@ jobs:
 
       - name: Terraform Plan
         id: tf-plan
-        run: terraform plan
+        run: terraform plan -var="mlops_key=${{ secrets.MLOPS_SSH_PUBLIC_KEY }}"
         working-directory: Infrastructure/
 
       - name: Terraform Apply

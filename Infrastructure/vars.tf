@@ -137,6 +137,7 @@ variable "ami" {
 }
 
 variable "mlops_key" {
+  description = "SSH public key content"
   type = string
 }
 
