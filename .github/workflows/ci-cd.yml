@@ -67,3 +67,40 @@ jobs:
         if: ${{ steps.tf-plan.outcome == 'success' }}
         run: terraform apply -auto-approve -var="mlops_key=${{ secrets.MLOPS_SSH_PUBLIC_KEY }}"
         working-directory: Infrastructure/
+
+      - name: Get EC2 Public IP
+        id: get-ip
+        run: echo "ec2_dns_ip=$(terraform output -raw ec2_dns_ip)" >> $GITHUB_OUTPUT
+        working-directory: Infrastructure/
+
+      - name: Get MLFLOW DB Endpoint
+        id: get-mlflow-db-endpoint
+        run: echo "mlflow_db_endpoint=$(terraform output -raw db_mlflow_endpoint)" >> $GITHUB_OUTPUT
+        working-directory: Infrastructure/
+
+      - name: Get AIRFLOW DB Endpoint
+        id: get-airflow-db-endpoint
+        run: echo "airflow_db_endpoint=$(terraform output -raw db_airflow_endpoint)" >> $GITHUB_OUTPUT
+        working-directory: Infrastructure/
+
+      - name: Get GRAFANA DB Endpoint
+        id: get-grafana-db-endpoint
+        run: echo "grafana_db_endpoint=$(terraform output -raw db_grafana_endpoint)" >> $GITHUB_OUTPUT
+        working-directory: Infrastructure/
+
+      - name: Update .env on EC2
+        run: |
+            ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.ec2_dns_ip }} << 'EOF'
+            cd diabetes_mlops
+
+            sed -i "s|^AWS_ACCESS_KEY_ID=.*|AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}|" .env
+            sed -i "s|^AWS_SECRET_ACCESS_KEY=.*|AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}|" .env
+            sed -i "s|^KAGGLE_USERNAME=.*|KAGGLE_USERNAME=${{ secrets.KAGGLE_USERNAME }}|" .env
+            sed -i "s|^KAGGLE_KEY=.*|KAGGLE_KEY=${{ secrets.KAGGLE_KEY }}|" .env
+            sed -i "s|^MLFLOW_DB_ENDPOINT=.*|MLFLOW_DB_ENDPOINT=${{ steps.get-mlflow-db-endpoint.outputs.mlflow_db_endpoint }}|" .env
+            sed -i "s|^AIRFLOW_DB_ENDPOINT=.*|AIRFLOW_DB_ENDPOINT=${{ steps.get-airflow-db-endpoint.outputs.airflow_db_endpoint }}|" .env
+            sed -i "s|^GRAFANA_DB_ENDPOINT=.*|GRAFANA_DB_ENDPOINT=${{ steps.get-grafana-db-endpoint.outputs.grafana_db_endpoint }}|" .env
+
+            echo "--- Updated .env file ---"
+            cat .env
+            EOF
