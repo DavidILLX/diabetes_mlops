@@ -1,0 +1,99 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_DEFAULT_REGION: 'eu-north-1'
+  KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+  KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.10.18
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.10.18
+
+      - name: Install dependencies
+        run: pip install pipenv && pipenv install --dev
+
+      - name: Setup Kaggle API credentials
+        run: |
+          mkdir -p ~/.config/kaggle
+          echo "${{ secrets.KAGGLE_JSON }}" > ~/.config/kaggle/kaggle.json
+          chmod 600 ~/.config/kaggle/kaggle.json
+
+      - name: Run formatting, linting and tests
+        run: pipenv run make all
+
+  tf-init:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: Infrastructure/
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: tf-init
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform Plan
+        id: tf-plan
+        run: terraform plan
+        working-directory: Infrastructure/
+
+      - name: Terraform Apply
+        if: ${{ steps.tf-plan.outcome == 'success' }}
+        run: terraform apply -auto-approve
+        working-directory: Infrastructure/
+
+      - name: Get EC2 Public IP
+        id: get-ip
+        run: echo "ec2_dns_ip=$(terraform output -raw ec2_dns_ip)" >> $GITHUB_OUTPUT
+        working-directory: Infrastructure/
+
+      - name: SSH setup
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.ec2_dns_ip }} << 'EOF'
+            cd /home/ubuntu/diabetes_mlops
+            chmod +x deploy.sh
+            ./deploy.sh
+          EOF
