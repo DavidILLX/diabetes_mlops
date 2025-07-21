@@ -1,7 +1,7 @@
 # AWS provider
 terraform {
   backend "s3" {
-    bucket  = "tf-state-mlops-zoomcamp"
+    bucket  = "tf-state-diabetes-mlops"
     key     = "staging/mlops.tfstate"
     region  = "eu-north-1"
     encrypt = true
