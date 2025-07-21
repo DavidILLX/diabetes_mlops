@@ -28,5 +28,5 @@ jobs:
         working-directory: Infrastructure/
 
       - name: Terraform Destroy
-        run: terraform destroy -auto-approve
+        run: terraform destroy -auto-approve -var="mlops_key=${{ secrets.MLOPS_SSH_PUBLIC_KEY }}"
         working-directory: Infrastructure/
