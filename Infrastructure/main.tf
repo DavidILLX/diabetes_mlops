@@ -256,6 +256,7 @@ resource "aws_db_instance" "db_instance_grafana" {
   skip_final_snapshot = true
 }
 
+# SSH key for EC2 instance
 resource "aws_key_pair" "mlops_key" {
   key_name   = "mlops_key"
   public_key = var.mlops_key
@@ -289,9 +290,4 @@ resource "aws_instance" "mlops_server" {
 resource "aws_route_table_association" "subnet_a_association" {
   subnet_id      = aws_subnet.mlops_subnet_a.id
   route_table_id = aws_route_table.public_rt.id
-}
-
-resource "aws_key_pair" "mlops_key" {
-  key_name   = var.mlops_key_name
-  public_key = file(var.mlops_key_path)
 }
