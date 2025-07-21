@@ -70,8 +70,11 @@ jobs:
 
       - name: Get EC2 Public IP
         id: get-ip
-        run: echo "ec2_dns_ip=$(terraform output -raw ec2_dns_ip)" >> $GITHUB_OUTPUT
         working-directory: Infrastructure/
+        run: |
+          IP=$(terraform output -raw ec2_dns_ip)
+          echo "ec2_dns_ip=$IP" >> "$GITHUB_OUTPUT"
+
 
       - name: Get MLFLOW DB Endpoint
         id: get-mlflow-db-endpoint
