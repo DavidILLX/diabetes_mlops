@@ -20,15 +20,15 @@ output "ec2_ssh_command" {
 
 output "db_mlflow_endpoint" {
   description = "The endpoint of the db instance for mlflow"
-  value = aws_db_instance.db_instance_mlflow.endpoint
+  value = aws_db_instance.db_instance_mlflow.address
 }
 
 output "db_airflow_endpoint" {
   description = "The endpoint of the db instance for airflow"
-  value = aws_db_instance.db_instance_airflow.endpoint
+  value = aws_db_instance.db_instance_airflow.address
 }
 
 output "db_grafana_endpoint" {
   description = "The endpoint of the db instance for airflow"
-  value = aws_db_instance.db_instance_grafana.endpoint
+  value = aws_db_instance.db_instance_grafana.address
 }
