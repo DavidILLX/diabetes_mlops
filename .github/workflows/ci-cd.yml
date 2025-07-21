@@ -67,21 +67,3 @@ jobs:
         if: ${{ steps.tf-plan.outcome == 'success' }}
         run: terraform apply -auto-approve -var="mlops_key=${{ secrets.MLOPS_SSH_PUBLIC_KEY }}"
         working-directory: Infrastructure/
-
-      - name: Get EC2 Public IP
-        id: get-ip
-        run: echo "ec2_dns_ip=$(terraform output -raw ec2_dns_ip)" >> $GITHUB_OUTPUT
-        working-directory: Infrastructure/
-
-      - name: SSH setup
-        uses: webfactory/ssh-agent@v0.5.4
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
-
-      - name: Deploy to EC2
-        run: |
-          ssh -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.ec2_dns_ip }} << 'EOF'
-            cd /home/ubuntu/diabetes_mlops
-            chmod +x deploy.sh
-            ./deploy.sh
-          EOF
