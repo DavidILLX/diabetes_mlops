@@ -111,3 +111,7 @@ jobs:
             echo "--- Updated .env file ---"
             cat .env
             EOF
+
+      - name: Run deployment script on EC2
+        run: |
+            ssh -i ec2-key.pem -o StrictHostKeyChecking=no ubuntu@${{ steps.get-ip.outputs.ec2_dns_ip }}  "bash ~/diabetes_mlops/deploy.sh"
