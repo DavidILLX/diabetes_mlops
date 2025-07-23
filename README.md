@@ -42,8 +42,8 @@ The infrastructure is provisioned using Terraform. Everything runs within a priv
 ├── Tracking              # MLflow integration
 ├── Orchestration         # Airflow intergration
 ├── Tests                 # Unit tests for preprocessing
-├── docker-compose.yml
-├── Makefile
+├── docker-compose.yml    # Defines and runs all project services
+├── Makefile              # Automation of common commands for build, testing, linting
 ├── .pre-commit-config    # Pre-commit hooks for linting, isort, formatting
 ├── pyproject.toml        # Config for pre-commit
 ├── Pipfile               # Pytrhon enviroment
@@ -94,6 +94,7 @@ ssh-keygen -t rsa -b 4096 -f ~/.ssh/mlops
    * Deploy Docker containers to EC2
    * Set up .env, volumes and S3 connections
 
+5. ⚠️ Note: Add Grafana Database endpoint into \Monitorig\config\grafana_datasource
 ---
 
 ### 3. 🔐 Connect to EC2 Server
@@ -148,7 +149,7 @@ Use VSCode Remote SSH or GitHub Codespaces to forward these ports:
 * Tracks metrics like F1-score, recall, accuracy, precision, ROC-AUC.
 * Important metrics are pushed into PostgreSQL and visualized in **Grafana**.
 
-> 📌 *Placeholder for Grafana dashboard screenshot*
+![Grafana Dashboards](.assets/Grafana_monitoring.png)
 
 ---
 

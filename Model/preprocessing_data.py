@@ -37,6 +37,7 @@ def parse_args():
 
 
 def read_dataframe(force_download=False):
+    os.makedirs("/home/airflow/.config/kaggle", exist_ok=True)
     data_dir = Path(__file__).resolve().parent.parent / "Data"
     os.makedirs(data_dir, exist_ok=True)
 
