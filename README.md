@@ -85,16 +85,23 @@ ssh-keygen -t rsa -b 4096 -f ~/.ssh/mlops
 ### 2. 🚀 Launch via GitHub Actions
 
 1. Fork or clone this repository.
-2. Upload secrets mentioned above into GitHub Secrets.
-3. Trigger the GitHub Action manually (`Deploy` workflow).
-4. GitHub Actions will:
+2. Upload the required secrets into GitHub Secrets.
+3. Create the S3 bucket for Terraform state:
+   You need to manually create a bucket named `tf-state-diabetes-mlops` in AWS S3.
+   This is used to store the remote Terraform state file.
+4. Manually trigger the `Deploy` GitHub Action workflow.
+5. GitHub Actions will:
 
-   * Run tests, linting, formatting
-   * Build infrastructure with Terraform
-   * Deploy Docker containers to EC2
-   * Set up .env, volumes and S3 connections
+   * Run tests, linting, and formatting
+   * Build infrastructure using Terraform
+   * Deploy Docker containers to the EC2 instance
+   * Set up `.env`, Docker volumes, and S3 connections
 
-5. ⚠️ Note: Add Grafana Database endpoint into \Monitorig\config\grafana_datasource
+6. ⚡ The orchestration (Airflow DAGs) is scheduled later.
+   To run it immediately, forward ports and trigger the DAGs manually in Airflow.
+
+7. ⚠️ Note: You must manually add the Grafana Database endpoint in
+   `Monitoring/config/grafana_datasource.yaml`
 ---
 
 ### 3. 🔐 Connect to EC2 Server
