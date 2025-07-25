@@ -102,6 +102,7 @@ ssh-keygen -t rsa -b 4096 -f ~/.ssh/mlops
 
 7. ⚠️ Note: You must manually add the Grafana Database endpoint in
    `Monitoring/config/grafana_datasource.yaml`
+8. To destroy the Infrastructure trigger `Destroy` GitHub Action workflow.
 ---
 
 ### 3. 🔐 Connect to EC2 Server
